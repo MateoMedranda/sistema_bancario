@@ -6,27 +6,27 @@
 ============================================================
 -->
 
-# <<Nombre del Sistema>>
+# <<EMM Bank System>>
 
 > MVP de arquitectura de microservicios · <<Materia>> · 7.° semestre · Entrega por avances.
 
 ## 👥 Equipo
 | Integrante | Rol | GitHub |
 |---|---|---|
-| <<Nombre 1>> | <<Backend / Arquitectura>> | @usuario |
-| <<Nombre 2>> | <<Transportes / gRPC>> | @usuario |
-| <<Nombre 3>> | <<Seguridad / Observabilidad>> | @usuario |
-| <<Nombre 4 (opcional)>> | <<Documentación / QA>> | @usuario |
+| Mateo Medranda | <<Backend / Arquitectura>> | @usuario |
+| Erick Obando | <<Transportes / gRPC>> | @usuario |
+| Moises Benalcázar | <<Seguridad / Observabilidad>> | @usuario |
+| Todos los miembros | <<Documentación / QA>> | @usuario |
 
 ## 🧩 Descripción del MVP
 ✍️ <<1–2 párrafos: qué hace el sistema y por qué el dominio es sencillo.>>
-- **MS 1 — <<Pedidos>>:** <<responsabilidad>>
-- **MS 2 — <<Productos>>:** <<responsabilidad>>
-- **MS 3 — <<Notificaciones>>:** <<responsabilidad>>
+- **MS 1 — Clientes:** Este microservicio gestiona usuarios (clientes, cajeros, auditores, administradores), autenticación, auditoría y configuración general. 
+- **MS 2 — Cuentas:** Este microservicio se encarga de crear, consultar y administrar el estado de las cuentas bancarias (ahorros o corriente). 
+- **MS 3 — Transacciones:** Este microservicio gestiona los movimientos de dinero (depósitos, retiros y transferencias). 
 - **API Gateway:** punto único de entrada.
 
 ## 🛠️ Stack
-- **Framework:** <<NestJS / Spring Boot>>
+- **Framework:** NestJS
 - **Síncrono:** TCP · **Eventos:** <<Redis>> · **2.º transporte:** <<RabbitMQ/MQTT/NATS>> · **Contrato:** gRPC
 - **Seguridad:** JWT + Guard · **Observabilidad:** Sentry
 - **BD:** PostgreSQL · **Contenedores:** Docker Compose · **Estructura:** monorepo
@@ -40,9 +40,10 @@ curl http://localhost:3000/api/<<recurso>>
 
 ## 🏗️ Arquitectura
 ✍️ <<Diagrama en /docs o Mermaid. Actualícenlo en cada avance.>>
+![Diagrama de Arquitectura de Microservicios](docs/Arquitectura_V1.png)
 
 ## 🧭 Metodología
-- **Kanban:** <<enlace GitHub Projects>> (captura en /docs).
+- **Kanban:** [Kanban Sistema Bancario](https://github.com/users/MateoMedranda/projects/3/views/1) (captura en /docs).
 - **Ramificación:** <<GitHub Flow>> — `main` protegida, ramas `feat/…`, PRs revisados, tags por avance.
 - **Commits semánticos:** Conventional Commits.
 
