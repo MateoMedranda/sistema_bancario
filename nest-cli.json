@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "apps/sistema_bancario/src",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/sistema_bancario/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/sistema_bancario",
+  "projects": {
+    "clientes": {
+      "type": "application",
+      "root": "apps/clientes",
+      "entryFile": "main",
+      "sourceRoot": "apps/clientes/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/clientes/tsconfig.app.json"
+      }
+    },
+    "cuentas": {
+      "type": "application",
+      "root": "apps/cuentas",
+      "entryFile": "main",
+      "sourceRoot": "apps/cuentas/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/cuentas/tsconfig.app.json"
+      }
+    },
+    "sistema_bancario": {
+      "type": "application",
+      "root": "apps/sistema_bancario",
+      "entryFile": "main",
+      "sourceRoot": "apps/sistema_bancario/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/sistema_bancario/tsconfig.app.json"
+      }
+    },
+    "transacciones": {
+      "type": "application",
+      "root": "apps/transacciones",
+      "entryFile": "main",
+      "sourceRoot": "apps/transacciones/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/transacciones/tsconfig.app.json"
+      }
+    }
+  }
+}
