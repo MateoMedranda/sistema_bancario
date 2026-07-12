@@ -19,7 +19,10 @@
 | Todos los miembros | <<Documentación / QA>> | @usuario |
 
 ## 🧩 Descripción del MVP
-✍️ <<1–2 párrafos: qué hace el sistema y por qué el dominio es sencillo.>>
+✍️ Este sistema consiste en el diseño e implementación del núcleo transaccional básico para una plataforma bancaria distribuida ("Core Bancario"). El dominio se mantiene intencionalmente sencillo para focalizar el esfuerzo en la arquitectura de comunicación síncrona y asíncrona, el manejo de la latencia y el desacoplamiento, el sistema permitirá manejar diferentes roles como un administrador, auditor, cajero y socio o cliente, se manejará un proceso transaccional para depósitos, retiros y transferencias, así como el manejo de diferentes cuentas bancarias, es un proceso sencillo con 3 microservicios, donde existirá una comunicación entre transacciones y cuentas para poder validar cuentas existentes y activas.
+
+Además el sistema contará con una base de datos en PostgreSQL, que puede conectarse de forma local, pero para levantamiento del entorno en producción, se tendrá una base levantada en Render, también con Redis se podrá manejar el control de eventos transaccionales para el funcionamiento asíncrono.
+
 - **MS 1 — Clientes:** Este microservicio gestiona usuarios (clientes, cajeros, auditores, administradores), autenticación, auditoría y configuración general. 
 - **MS 2 — Cuentas:** Este microservicio se encarga de crear, consultar y administrar el estado de las cuentas bancarias (ahorros o corriente). 
 - **MS 3 — Transacciones:** Este microservicio gestiona los movimientos de dinero (depósitos, retiros y transferencias). 
@@ -27,7 +30,7 @@
 
 ## 🛠️ Stack
 - **Framework:** NestJS
-- **Síncrono:** TCP · **Eventos:** <<Redis>> · **2.º transporte:** <<RabbitMQ/MQTT/NATS>> · **Contrato:** gRPC
+- **Síncrono:** TCP · **Eventos:** Redis · **2.º transporte:** RabbitMQ/MQTT/NATS · **Contrato:** gRPC
 - **Seguridad:** JWT + Guard · **Observabilidad:** Sentry
 - **BD:** PostgreSQL · **Contenedores:** Docker Compose · **Estructura:** monorepo
 
@@ -39,7 +42,7 @@ curl http://localhost:3000/api/<<recurso>>
 ```
 
 ## 🏗️ Arquitectura
-✍️ <<Diagrama en /docs o Mermaid. Actualícenlo en cada avance.>>
+✍️ Diagrama de arquitectura
 ![Diagrama de Arquitectura de Microservicios](docs/Arquitectura_V1.png)
 
 ## 🧭 Metodología
