@@ -10,13 +10,13 @@
   "monorepo": true,
   "root": "apps/sistema_bancario",
   "projects": {
-    "clientes": {
+    "usuarios": {
       "type": "application",
-      "root": "apps/clientes",
+      "root": "apps/usuarios",
       "entryFile": "main",
-      "sourceRoot": "apps/clientes/src",
+      "sourceRoot": "apps/usuarios/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/clientes/tsconfig.app.json"
+        "tsConfigPath": "apps/usuarios/tsconfig.app.json"
       }
     },
     "cuentas": {

@@ -13,7 +13,7 @@
 ## 👥 Equipo
 | Integrante | Rol | GitHub |
 |---|---|---|
-| Mateo Medranda | <<Backend / Arquitectura>> | @usuario |
+| Mateo Medranda | <<Backend / Arquitectura>> | @MateoMedranda |
 | Erick Obando | <<Transportes / gRPC>> | @usuario |
 | Moises Benalcázar | <<Seguridad / Observabilidad>> | @usuario |
 | Todos los miembros | <<Documentación / QA>> | @usuario |
@@ -23,7 +23,7 @@
 
 Además el sistema contará con una base de datos en PostgreSQL, que puede conectarse de forma local, pero para levantamiento del entorno en producción, se tendrá una base levantada en Render, también con Redis se podrá manejar el control de eventos transaccionales para el funcionamiento asíncrono.
 
-- **MS 1 — Clientes:** Este microservicio gestiona usuarios (clientes, cajeros, auditores, administradores), autenticación, auditoría y configuración general. 
+- **MS 1 — Usuarios:** Este microservicio gestiona usuarios (clientes, cajeros, auditores, administradores), autenticación, auditoría y configuración general. 
 - **MS 2 — Cuentas:** Este microservicio se encarga de crear, consultar y administrar el estado de las cuentas bancarias (ahorros o corriente). 
 - **MS 3 — Transacciones:** Este microservicio gestiona los movimientos de dinero (depósitos, retiros y transferencias). 
 - **API Gateway:** punto único de entrada.
