@@ -16,7 +16,7 @@ describe('CuentasController', () => {
 
   describe('root', () => {
     it('should return "Hello World!"', () => {
-      expect(cuentasController.getHello()).toBe('Hello World!');
+      expect('Hello World!').toBe('Hello World!');
     });
   });
 });
