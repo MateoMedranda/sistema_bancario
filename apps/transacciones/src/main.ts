@@ -1,8 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { TransaccionesModule } from './transacciones.module';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(TransaccionesModule);
-  await app.listen(process.env.port ?? 3000);
+  const app = await NestFactory.create(AppModule);
+  app.useGlobalPipes(new ValidationPipe());
+  await app.listen(process.env.TRANSACCIONES_PORT ?? 3000);
 }
-bootstrap();
+void bootstrap();
