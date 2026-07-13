@@ -1,8 +1,6 @@
 # =============================================================================
 #  docker-compose.yml  —  Base del MVP (Tarea 1)
 #  Gateway + 3 microservicios + Redis (eventos) + Postgres.
-#  Ajusten los "build" a las rutas reales de su monorepo.
-#
 #  Levantar:   docker compose up -d --build
 #  Ver:        docker compose ps
 # =============================================================================
@@ -10,51 +8,95 @@ services:
 
   db:
     image: postgres:16-alpine
-    environment: { POSTGRES_USER: app, POSTGRES_PASSWORD: app, POSTGRES_DB: app }
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_DATABASE_USUARIOS}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U app"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
 
   # Broker de EVENTOS (camino asíncrono de la Tarea 1). Redis = ejemplo por defecto.
   redis:
     image: redis:7-alpine
-    ports: ["6379:6379"]
+    container_name: redis_broker
+    ports:
+      - "6379:6379"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redisdata:/data
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis_insight_ui
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
 
   # --- Microservicio A (inicia la cadena síncrona por TCP) ---
-  svc-pedidos:
-    build: ./apps/pedidos            # <-- ajusten la ruta
-    environment:
+  svc-transacciones:
+    build: ./apps/transacciones
+    environment: 
       DB_HOST: db
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE_TRANSACCIONES: ${DB_DATABASE_TRANSACCIONES}
       REDIS_HOST: redis
-      SVC_PRODUCTOS_HOST: svc-productos   # destino del salto síncrono (TCP)
-      SVC_PRODUCTOS_PORT: 3001
+      SVC_CUENTAS_HOST: svc-cuentas
+      SVC_CUENTAS_PORT: 4002
     depends_on: [db, redis]
     restart: unless-stopped
 
   # --- Microservicio B (segundo salto de la cadena síncrona) ---
-  svc-productos:
-    build: ./apps/productos
-    environment: { DB_HOST: db, REDIS_HOST: redis }
+  svc-cuentas:
+    build: ./apps/cuentas
+    environment: 
+      DB_HOST: db
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE_CUENTAS: ${DB_DATABASE_CUENTAS}
+      REDIS_HOST: redis
     depends_on: [db]
     restart: unless-stopped
 
   # --- Microservicio C (consumidor de EVENTOS por Redis, camino asíncrono) ---
-  svc-notificaciones:
-    build: ./apps/notificaciones
-    environment: { REDIS_HOST: redis }
-    depends_on: [redis]
+  svc-usuarios:
+    build: ./apps/usuarios            # <-- ajusten la ruta
+    environment:
+      DB_HOST: db
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE_USUARIOS: ${DB_DATABASE_USUARIOS}
+      REDIS_HOST: redis
+    depends_on: [db, redis]
     restart: unless-stopped
 
   # --- API Gateway (punto único de entrada, expone HTTP) ---
   gateway:
     build: ./apps/gateway
     environment:
-      SVC_PEDIDOS_HOST: svc-pedidos
-      SVC_PEDIDOS_PORT: 3000
+      SVC_TRANSACCIONES_HOST: svc-transacciones
+      SVC_TRANSACCIONES_PORT: 4003
     ports: ["3000:3000"]             # el sistema se prueba en http://localhost:3000
-    depends_on: [svc-pedidos]
+    depends_on: [svc-transacciones]
     restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
