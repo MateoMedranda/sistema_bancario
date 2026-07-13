@@ -7,6 +7,8 @@
 services:
 
   db:
+    env_file:
+      - ../.env
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${DB_USERNAME}
@@ -26,6 +28,8 @@ services:
 
   # Broker de EVENTOS (camino asíncrono de la Tarea 1). Redis = ejemplo por defecto.
   redis:
+    env_file:
+      - ../.env
     image: redis:7-alpine
     container_name: redis_broker
     ports:
@@ -51,7 +55,11 @@ services:
 
   # --- Microservicio A (inicia la cadena síncrona por TCP) ---
   svc-transacciones:
-    build: ./apps/transacciones
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/transacciones/Dockerfile
     environment: 
       DB_HOST: db
       DB_USERNAME: ${DB_USERNAME}
@@ -65,7 +73,11 @@ services:
 
   # --- Microservicio B (segundo salto de la cadena síncrona) ---
   svc-cuentas:
-    build: ./apps/cuentas
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/cuentas/Dockerfile
     environment: 
       DB_HOST: db
       DB_USERNAME: ${DB_USERNAME}
@@ -77,7 +89,11 @@ services:
 
   # --- Microservicio C (consumidor de EVENTOS por Redis, camino asíncrono) ---
   svc-usuarios:
-    build: ./apps/usuarios            # <-- ajusten la ruta
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/usuarios/Dockerfile
     environment:
       DB_HOST: db
       DB_USERNAME: ${DB_USERNAME}
@@ -89,7 +105,11 @@ services:
 
   # --- API Gateway (punto único de entrada, expone HTTP) ---
   gateway:
-    build: ./apps/gateway
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/sistema_bancario/Dockerfile
     environment:
       SVC_TRANSACCIONES_HOST: svc-transacciones
       SVC_TRANSACCIONES_PORT: 4003
