@@ -16,9 +16,9 @@ services:
       - ../.env
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_DATABASE_USUARIOS}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rootroot}
+      POSTGRES_DB: ${DB_DATABASE_USUARIOS:-UsuariosBDD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -49,8 +49,14 @@ services:
   redis-insight:
     image: redis/redisinsight:latest
     container_name: redis_insight_ui
+    environment:
+      RI_APP_PORT: 5540
+      RI_APP_HOST: 0.0.0.0
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: 6379
+      RI_REDIS_ALIAS: redis_broker
     ports:
-      - "8001:8001"
+      - "5540:5540"
     restart: unless-stopped
     depends_on:
       redis:
@@ -65,9 +71,6 @@ services:
       dockerfile: apps/transacciones/Dockerfile
     environment:
       DB_HOST: db
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE_TRANSACCIONES: ${DB_DATABASE_TRANSACCIONES}
       REDIS_HOST: redis
       SVC_CUENTAS_HOST: svc-cuentas
       SVC_CUENTAS_PORT: 4002
@@ -88,9 +91,6 @@ services:
       dockerfile: apps/cuentas/Dockerfile
     environment:
       DB_HOST: db
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE_CUENTAS: ${DB_DATABASE_CUENTAS}
       CUENTAS_PORT: 4002
     depends_on:
       db:
@@ -106,9 +106,6 @@ services:
       dockerfile: apps/usuarios/Dockerfile
     environment:
       DB_HOST: db
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE_USUARIOS: ${DB_DATABASE_USUARIOS}
       REDIS_HOST: redis
       REDIS_PORT: 6379
     depends_on:

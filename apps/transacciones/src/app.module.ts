@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TransaccionesModule } from './transacciones/transacciones.module';
 
 @Module({
@@ -21,20 +20,6 @@ import { TransaccionesModule } from './transacciones/transacciones.module';
         synchronize: configService.get<string>('DB_SYNCHRONIZE') === 'true',
       }),
     }),
-    ClientsModule.registerAsync([
-      {
-        name: 'CUENTAS_SERVICE',
-        imports: [ConfigModule],
-        inject: [ConfigService],
-        useFactory: (config: ConfigService) => ({
-          transport: Transport.TCP,
-          options: {
-            host: config.get<string>('SVC_CUENTAS_HOST', 'localhost'),
-            port: config.get<number>('SVC_CUENTAS_PORT', 4002),
-          },
-        }),
-      },
-    ]),
     TransaccionesModule,
   ],
 })
