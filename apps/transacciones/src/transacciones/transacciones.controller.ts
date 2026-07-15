@@ -1,46 +1,29 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
+import { MessagePattern } from '@nestjs/microservices';
 import { TransaccionesService } from './transacciones.service';
 import { CreateTransaccionDto } from './dto/create-transaccion.dto';
-import { UpdateTransaccionDto } from './dto/update-transaccion.dto';
-import { Transaccion } from './entities/transaccion.entity';
 
-@Controller('transacciones')
+@Controller()
 export class TransaccionesController {
+  private readonly logger = new Logger(TransaccionesController.name);
+
   constructor(private readonly transaccionesService: TransaccionesService) {}
 
-  @Post()
-  create(@Body() createTransaccionDto: CreateTransaccionDto): Promise<Transaccion> {
-    return this.transaccionesService.create(createTransaccionDto);
+  @MessagePattern('create-transaccion')
+  async create(dto: CreateTransaccionDto) {
+    this.logger.log('Transacciones recibe peticion TCP del Gateway');
+    return this.transaccionesService.create(dto);
   }
 
-  @Get()
-  async findAll(): Promise<Transaccion[]> {
+  @MessagePattern('find-all-transacciones')
+  async findAll() {
+    this.logger.log('Transacciones: findAll via TCP');
     return this.transaccionesService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string): Promise<Transaccion> {
-    return this.transaccionesService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateTransaccionDto: UpdateTransaccionDto,
-  ): Promise<Transaccion> {
-    return this.transaccionesService.update(id, updateTransaccionDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string): Promise<Transaccion> {
-    return this.transaccionesService.remove(id);
+  @MessagePattern('find-transaccion')
+  async findOne(data: { id: string }) {
+    this.logger.log(`Transacciones: findOne(${data.id}) via TCP`);
+    return this.transaccionesService.findOne(data.id);
   }
 }

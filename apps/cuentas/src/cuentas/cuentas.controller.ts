@@ -1,46 +1,34 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-} from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
+import { MessagePattern } from '@nestjs/microservices';
 import { CuentasService } from './cuentas.service';
-import { CreateCuentaDto } from './dto/create-cuenta.dto';
-import { UpdateCuentaDto } from './dto/update-cuenta.dto';
-import { Cuenta } from './entities/cuenta.entity';
 
-@Controller('cuentas')
+@Controller()
 export class CuentasController {
+  private readonly logger = new Logger(CuentasController.name);
+
   constructor(private readonly cuentasService: CuentasService) {}
 
-  @Post()
-  create(@Body() createCuentaDto: CreateCuentaDto): Promise<Cuenta> {
-    return this.cuentasService.create(createCuentaDto);
+  @MessagePattern('validate-cuenta')
+  async validate(data: { id: string }) {
+    this.logger.log(`Cuentas: validate-cuenta(${data.id}) via TCP`);
+    return this.cuentasService.validate(data.id);
   }
 
-  @Get()
-  async findAll(): Promise<Cuenta[]> {
+  @MessagePattern('find-cuenta')
+  async findOne(data: { id: string }) {
+    this.logger.log(`Cuentas: find-cuenta(${data.id}) via TCP`);
+    return this.cuentasService.findOne(data.id);
+  }
+
+  @MessagePattern('find-all-cuentas')
+  async findAll() {
+    this.logger.log('Cuentas: findAll via TCP');
     return this.cuentasService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string): Promise<Cuenta> {
-    return this.cuentasService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateCuentaDto: UpdateCuentaDto,
-  ): Promise<Cuenta> {
-    return this.cuentasService.update(id, updateCuentaDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string): Promise<Cuenta> {
-    return this.cuentasService.remove(id);
+  @MessagePattern('update-balance')
+  async updateBalance(data: { id: string; amount: number }) {
+    this.logger.log(`Cuentas: update-balance(${data.id}, ${data.amount}) via TCP`);
+    return this.cuentasService.updateBalance(data.id, data.amount);
   }
 }

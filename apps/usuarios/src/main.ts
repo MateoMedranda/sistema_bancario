@@ -1,10 +1,22 @@
 import { NestFactory } from '@nestjs/core';
+import { Transport, MicroserviceOptions, Logger } from '@nestjs/microservices';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.useGlobalPipes(new ValidationPipe());
-  await app.listen(process.env.USUARIOS_PORT ?? 3000);
+  const logger = new Logger('Usuarios');
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    AppModule,
+    {
+      transport: Transport.REDIS,
+      options: {
+        host: process.env.REDIS_HOST ?? 'localhost',
+        port: +(process.env.REDIS_PORT ?? 6379),
+      },
+    },
+  );
+  await app.listen();
+  logger.log(
+    `Microservicio Usuarios escuchando eventos Redis en ${process.env.REDIS_HOST ?? 'localhost'}:${process.env.REDIS_PORT ?? 6379}`,
+  );
 }
 void bootstrap();

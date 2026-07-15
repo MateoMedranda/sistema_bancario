@@ -1,42 +1,78 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateTransaccionDto } from './dto/create-transaccion.dto';
-import { UpdateTransaccionDto } from './dto/update-transaccion.dto';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Transaccion } from './entities/transaccion.entity';
 import { Repository } from 'typeorm';
+import { firstValueFrom } from 'rxjs';
+import { Transaccion } from './entities/transaccion.entity';
+import { CreateTransaccionDto } from './dto/create-transaccion.dto';
 
 @Injectable()
 export class TransaccionesService {
-  
+  private readonly logger = new Logger(TransaccionesService.name);
+
   constructor(
     @InjectRepository(Transaccion)
-    private readonly transaccionRepository: Repository<Transaccion>,
+    private readonly repo: Repository<Transaccion>,
+    @Inject('CUENTAS_SERVICE')
+    private readonly cuentasClient: ClientProxy,
   ) {}
 
-  async create(createTransaccionDto: CreateTransaccionDto): Promise<Transaccion> {
-    return this.transaccionRepository.save(createTransaccionDto);
+  async create(dto: CreateTransaccionDto): Promise<Transaccion> {
+    this.logger.log(
+      `Transacciones -> TCP -> Cuentas (validar cuenta origen: ${dto.sourceAccountId})`,
+    );
+
+    try {
+      const sourceAccount = await firstValueFrom(
+        this.cuentasClient.send('validate-cuenta', { id: dto.sourceAccountId }),
+      );
+
+      if (!sourceAccount) {
+        throw new NotFoundException(
+          `Cuenta de origen ${dto.sourceAccountId} no encontrada o inactiva`,
+        );
+      }
+
+      if (dto.type === 'TRANSFERENCIA' && dto.destinationAccountId) {
+        this.logger.log('Validando cuenta destino via TCP');
+        const destAccount = await firstValueFrom(
+          this.cuentasClient.send('validate-cuenta', {
+            id: dto.destinationAccountId,
+          }),
+        );
+
+        if (!destAccount) {
+          throw new NotFoundException(
+            `Cuenta de destino ${dto.destinationAccountId} no encontrada o inactiva`,
+          );
+        }
+      }
+
+      const transaccion = this.repo.create({
+        ...dto,
+        status: 'SUCCESS',
+        fee: dto.fee ?? 0,
+        ipAddress: dto.ipAddress ?? '127.0.0.1',
+      });
+
+      const saved = await this.repo.save(transaccion);
+      this.logger.log(`Transaccion ${saved.id} creada exitosamente`);
+      return saved;
+    } catch (error) {
+      this.logger.error(`Error en cadena TCP: ${error.message}`);
+      throw error;
+    }
   }
 
   async findAll(): Promise<Transaccion[]> {
-    return this.transaccionRepository.find({});
+    return this.repo.find();
   }
 
   async findOne(id: string): Promise<Transaccion> {
-    const transaccion = await this.transaccionRepository.findOneBy({ id });
+    const transaccion = await this.repo.findOneBy({ id });
     if (!transaccion) {
-      throw new NotFoundException(`Transaccion with ID ${id} not found`);
+      throw new NotFoundException(`Transaccion con ID ${id} no encontrada`);
     }
     return transaccion;
-  }
-
-  async update(id: string, updateTransaccionDto: UpdateTransaccionDto): Promise<Transaccion> {
-    const transaccion = await this.findOne(id);
-    this.transaccionRepository.merge(transaccion, updateTransaccionDto);
-    return this.transaccionRepository.save(transaccion);
-  }
-
-  async remove(id: string): Promise<Transaccion> {
-    const transaccion = await this.findOne(id);
-    return this.transaccionRepository.remove(transaccion);
   }
 }
