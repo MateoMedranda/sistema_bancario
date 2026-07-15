@@ -1,42 +1,45 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateCuentaDto } from './dto/create-cuenta.dto';
-import { UpdateCuentaDto } from './dto/update-cuenta.dto';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Cuenta } from './entities/cuenta.entity';
 import { Repository } from 'typeorm';
+import { Cuenta } from './entities/cuenta.entity';
 
 @Injectable()
 export class CuentasService {
-  
+  private readonly logger = new Logger(CuentasService.name);
+
   constructor(
     @InjectRepository(Cuenta)
-    private readonly cuentaRepository: Repository<Cuenta>,
+    private readonly repo: Repository<Cuenta>,
   ) {}
 
-  async create(createCuentaDto: CreateCuentaDto): Promise<Cuenta> {
-    return this.cuentaRepository.save(createCuentaDto);
-  }
-
   async findAll(): Promise<Cuenta[]> {
-    return this.cuentaRepository.find({});
+    return this.repo.find();
   }
 
   async findOne(id: string): Promise<Cuenta> {
-    const cuenta = await this.cuentaRepository.findOneBy({ id });
+    const cuenta = await this.repo.findOneBy({ id });
     if (!cuenta) {
-      throw new NotFoundException(`Cuenta with ID ${id} not found`);
+      throw new NotFoundException(`Cuenta con ID ${id} no encontrada`);
     }
     return cuenta;
   }
 
-  async update(id: string, updateCuentaDto: UpdateCuentaDto): Promise<Cuenta> {
-    const cuenta = await this.findOne(id);
-    this.cuentaRepository.merge(cuenta, updateCuentaDto);
-    return this.cuentaRepository.save(cuenta);
+  async validate(id: string): Promise<Cuenta> {
+    const cuenta = await this.repo.findOneBy({ id });
+    if (!cuenta) {
+      this.logger.warn(`Cuenta ${id} no encontrada`);
+      throw new NotFoundException(`Cuenta ${id} no encontrada`);
+    }
+    if (cuenta.status !== 'ACTIVE') {
+      this.logger.warn(`Cuenta ${id} esta inactiva (status: ${cuenta.status})`);
+      throw new NotFoundException(`Cuenta ${id} esta inactiva`);
+    }
+    return cuenta;
   }
 
-  async remove(id: string): Promise<Cuenta> {
-    const cuenta = await this.findOne(id);
-    return this.cuentaRepository.remove(cuenta);
+  async updateBalance(id: string, amount: number): Promise<Cuenta> {
+    const cuenta = await this.validate(id);
+    cuenta.balance = Number(cuenta.balance) + amount;
+    return this.repo.save(cuenta);
   }
 }

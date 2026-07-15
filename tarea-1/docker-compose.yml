@@ -1,8 +1,7 @@
 # =============================================================================
-#  docker-compose.yml  —  Base del MVP (Tarea 1)
-#  Gateway + 3 microservicios + Redis (eventos) + Postgres.
+#  docker-compose.yml  —  Camino SINCRONO (TCP chain)
+#  Gateway -> Transacciones -> Cuentas
 #  Levantar:   docker compose up -d --build
-#  Ver:        docker compose ps
 # =============================================================================
 services:
 
@@ -26,84 +25,45 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
 
-  # Broker de EVENTOS (camino asíncrono de la Tarea 1). Redis = ejemplo por defecto.
-  redis:
-    env_file:
-      - ../.env
-    image: redis:7-alpine
-    container_name: redis_broker
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-    volumes:
-      - redisdata:/data
-
-  redis-insight:
-    image: redis/redisinsight:latest
-    container_name: redis_insight_ui
-    ports:
-      - "8001:8001"
-    restart: unless-stopped
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  # --- Microservicio A (inicia la cadena síncrona por TCP) ---
+  # ─── Microservicio A: Transacciones (inicia la cadena sincrona por TCP) ───
   svc-transacciones:
     env_file:
       - ../.env
     build:
       context: ..
       dockerfile: apps/transacciones/Dockerfile
-    environment: 
+    environment:
       DB_HOST: db
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE_TRANSACCIONES: ${DB_DATABASE_TRANSACCIONES}
-      REDIS_HOST: redis
       SVC_CUENTAS_HOST: svc-cuentas
       SVC_CUENTAS_PORT: 4002
-    depends_on: [db, redis]
+      TRANSACCIONES_PORT: 4003
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
-  # --- Microservicio B (segundo salto de la cadena síncrona) ---
+  # ─── Microservicio B: Cuentas (segundo salto de la cadena sincrona) ───
   svc-cuentas:
     env_file:
       - ../.env
     build:
       context: ..
       dockerfile: apps/cuentas/Dockerfile
-    environment: 
-      DB_HOST: db
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE_CUENTAS: ${DB_DATABASE_CUENTAS}
-      REDIS_HOST: redis
-    depends_on: [db]
-    restart: unless-stopped
-
-  # --- Microservicio C (consumidor de EVENTOS por Redis, camino asíncrono) ---
-  svc-usuarios:
-    env_file:
-      - ../.env
-    build:
-      context: ..
-      dockerfile: apps/usuarios/Dockerfile
     environment:
       DB_HOST: db
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
-      DB_DATABASE_USUARIOS: ${DB_DATABASE_USUARIOS}
-      REDIS_HOST: redis
-    depends_on: [db, redis]
+      DB_DATABASE_CUENTAS: ${DB_DATABASE_CUENTAS}
+      CUENTAS_PORT: 4002
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
-  # --- API Gateway (punto único de entrada, expone HTTP) ---
+  # ─── API Gateway (punto unico de entrada HTTP, orquesta TCP) ───
   gateway:
     env_file:
       - ../.env
@@ -111,12 +71,15 @@ services:
       context: ..
       dockerfile: apps/sistema_bancario/Dockerfile
     environment:
+      PORT: 3000
       SVC_TRANSACCIONES_HOST: svc-transacciones
       SVC_TRANSACCIONES_PORT: 4003
-    ports: ["3000:3000"]             # el sistema se prueba en http://localhost:3000
-    depends_on: [svc-transacciones]
+    ports:
+      - "3000:3000"
+    depends_on:
+      svc-transacciones:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
   pgdata:
-  redisdata:
