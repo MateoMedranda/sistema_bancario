@@ -1,42 +1,39 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateUsuarioDto } from './dto/create-usuario.dto';
-import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Usuario } from './entities/usuario.entity';
 import { Repository } from 'typeorm';
+import { Usuario } from './entities/usuario.entity';
 
 @Injectable()
 export class UsuariosService {
-  
+  private readonly logger = new Logger(UsuariosService.name);
+
   constructor(
     @InjectRepository(Usuario)
-    private readonly usuarioRepository: Repository<Usuario>,
+    private readonly repo: Repository<Usuario>,
   ) {}
 
-  async create(createUsuarioDto: CreateUsuarioDto): Promise<Usuario> {
-    return this.usuarioRepository.save(createUsuarioDto);
-  }
+  async processEvento(data: Record<string, any>): Promise<void> {
+    this.logger.log('Procesando evento de usuario de forma asincrona...');
+    this.logger.log(
+      `El consumidor NO bloquea al emisor. Evento procesado en background.`,
+    );
+    this.logger.log(`Contenido: ${JSON.stringify(data)}`);
 
-  async findAll(): Promise<Usuario[]> {
-    return this.usuarioRepository.find({});
-  }
-
-  async findOne(id: string): Promise<Usuario> {
-    const usuario = await this.usuarioRepository.findOneBy({ id });
-    if (!usuario) {
-      throw new NotFoundException(`Usuario with ID ${id} not found`);
+    if (data.type === 'create' && data.name) {
+      const usuario = this.repo.create({
+        name: data.name,
+        identityId: data.identityId ?? `${Date.now()}`,
+        email: data.email ?? `${data.name}@bank.com`,
+        role: data.role ?? 'CLIENTE',
+        status: 'ACTIVE',
+        twoFactorEnabled: false,
+        adminId: data.adminId ?? 'system',
+        ipAddress: data.ipAddress ?? '127.0.0.1',
+      });
+      await this.repo.save(usuario);
+      this.logger.log(`Usuario ${usuario.name} creado via evento asincrono`);
+    } else {
+      this.logger.log('Evento recibido sin accion de persistencia especifica');
     }
-    return usuario;
-  }
-
-  async update(id: string, updateUsuarioDto: UpdateUsuarioDto): Promise<Usuario> {
-    const usuario = await this.findOne(id);
-    this.usuarioRepository.merge(usuario, updateUsuarioDto);
-    return this.usuarioRepository.save(usuario);
-  }
-
-  async remove(id: string): Promise<Usuario> {
-    const usuario = await this.findOne(id);
-    return this.usuarioRepository.remove(usuario);
   }
 }

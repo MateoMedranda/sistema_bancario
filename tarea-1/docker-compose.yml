@@ -1,7 +1,13 @@
 # =============================================================================
-#  docker-compose.yml  —  Camino SINCRONO (TCP chain)
-#  Gateway -> Transacciones -> Cuentas
+#  docker-compose.yml  —  MVP Core Bancario (Tarea 1)
+#  Gateway + 3 microservicios + Redis (eventos) + Postgres.
+#
+#  Camino SINCRONO (TCP):  Gateway -> Transacciones -> Cuentas
+#  Camino ASINCRONO (Redis): Gateway publica evento -> Usuarios consume
+#
 #  Levantar:   docker compose up -d --build
+#  Ver:        docker compose ps
+#  Probar:     curl http://localhost:3000/api/health
 # =============================================================================
 services:
 
@@ -25,6 +31,31 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
 
+  # Broker de EVENTOS (camino asincrono)
+  redis:
+    image: redis:7-alpine
+    container_name: redis_broker
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redisdata:/data
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis_insight_ui
+    ports:
+      - "8001:8001"
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+
   # ─── Microservicio A: Transacciones (inicia la cadena sincrona por TCP) ───
   svc-transacciones:
     env_file:
@@ -37,11 +68,14 @@ services:
       DB_USERNAME: ${DB_USERNAME}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_DATABASE_TRANSACCIONES: ${DB_DATABASE_TRANSACCIONES}
+      REDIS_HOST: redis
       SVC_CUENTAS_HOST: svc-cuentas
       SVC_CUENTAS_PORT: 4002
       TRANSACCIONES_PORT: 4003
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 
@@ -63,7 +97,28 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # ─── API Gateway (punto unico de entrada HTTP, orquesta TCP) ───
+  # ─── Microservicio C: Usuarios (consumidor de EVENTOS por Redis, camino asincrono) ───
+  svc-usuarios:
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/usuarios/Dockerfile
+    environment:
+      DB_HOST: db
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_DATABASE_USUARIOS: ${DB_DATABASE_USUARIOS}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── API Gateway (punto unico de entrada HTTP, orquesta TCP + Redis) ───
   gateway:
     env_file:
       - ../.env
@@ -74,12 +129,17 @@ services:
       PORT: 3000
       SVC_TRANSACCIONES_HOST: svc-transacciones
       SVC_TRANSACCIONES_PORT: 4003
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "3000:3000"
     depends_on:
       svc-transacciones:
         condition: service_started
+      redis:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   pgdata:
+  redisdata:

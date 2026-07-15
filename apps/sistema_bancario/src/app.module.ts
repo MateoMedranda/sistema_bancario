@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { EventEmitterService } from './events/event-emitter.service';
 
 @Module({
   imports: [
@@ -20,9 +21,21 @@ import { AppService } from './app.service';
           },
         }),
       },
+      {
+        name: 'USUARIOS_EVENT',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.REDIS,
+          options: {
+            host: config.get<string>('REDIS_HOST', 'localhost'),
+            port: config.get<number>('REDIS_PORT', 6379),
+          },
+        }),
+      },
     ]),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, EventEmitterService],
 })
 export class AppModule {}
