@@ -19,6 +19,8 @@ export class AppController {
     return { status: 'ok', service: 'API Gateway', timestamp: new Date().toISOString() };
   }
 
+  // ─── Camino SINCRONO (TCP: Gateway -> Transacciones -> Cuentas) ───
+
   @Post('transacciones')
   @HttpCode(HttpStatus.CREATED)
   createTransaccion(@Body() dto: CreateTransaccionDto) {
@@ -33,5 +35,13 @@ export class AppController {
   @Get('transacciones/:id')
   findTransaccion(@Param('id') id: string) {
     return this.appService.findTransaccion(id);
+  }
+
+  // ─── Camino ASINCRONO (Redis: Gateway -> Usuarios, emisor no bloquea) ───
+
+  @Post('usuarios/evento')
+  @HttpCode(HttpStatus.OK)
+  publishUsuarioEvento(@Body() data: Record<string, any>) {
+    return this.appService.publishUsuarioEvento(data);
   }
 }
