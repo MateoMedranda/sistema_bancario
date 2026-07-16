@@ -74,21 +74,68 @@ curl http://localhost:3000/api/health
 ---
 
 ## 🟢 Avance 1 — Acoplamiento temporal y latencia · `tag v1-avance1`
+
 ### Caminos
-- **Síncrono (TCP):** Gateway → <<A>> → <<B>>.
-- **Asíncrono (Redis):** Gateway publica evento; el consumidor procesa sin bloquear.
+
+Durante la prueba se analizaron dos flujos de comunicación dentro del sistema:
+
+- **Síncrono (TCP):** Gateway → Microservicio Transacciones → Microservicio Cuentas.
+  
+  El Gateway realiza una petición directa mediante TCP y espera la respuesta del servicio dependiente antes de responder al cliente.
+
+- **Asíncrono (Redis):** Gateway → Redis → Microservicio Usuarios.
+
+  El Gateway publica un evento en Redis y responde inmediatamente sin esperar que el consumidor procese el mensaje.
 
 ### 📈 Latencia (con `benchmark.js`)
+
+Se utilizó el script `benchmark.js` para ejecutar múltiples peticiones POST contra ambos flujos y medir la latencia promedio, percentil 95 (p95) y tiempo máximo de respuesta.
+
 | Camino | Promedio (ms) | p95 (ms) | Máx (ms) |
-|---|---|---|---|
-| Síncrono | << >> | << >> | << >> |
-| Asíncrono | << >> | << >> | << >> |
+|---|---:|---:|---:|
+| TCP (Transacciones) | 10.17 | 11 | 100 |
+| Redis (Usuarios) | 3.04 | 4 | 65 |
 
 ### 🧨 Acoplamiento temporal
-✍️ <<Al apagar <<B>>, la petición síncrona falla; el flujo asíncrono acepta la petición sin bloquearse (capturas).>>
+
+Se realizó una prueba deteniendo el microservicio Cuentas, encargado del segundo salto de la cadena síncrona.
+
+Inicialmente, con todos los servicios activos, el endpoint `/api/transacciones` respondió correctamente con código HTTP **201 Created**, demostrando que el flujo síncrono funcionaba cuando todas las dependencias estaban disponibles.
+
+Posteriormente, se detuvo el microservicio Cuentas mediante Docker Compose. Al enviar nuevamente una petición al endpoint `/api/transacciones`, el Gateway no pudo completar la comunicación TCP con el microservicio caído, generando un error HTTP **500 Internal Server Error** debido a la dependencia temporal existente entre los servicios.
+
+En contraste, el endpoint `/api/usuarios/evento` continuó respondiendo correctamente con código HTTP **200 OK**, incluso con el consumidor detenido, debido a que el Gateway únicamente publica el evento en Redis y no espera una respuesta inmediata del microservicio Usuarios.
+
+Esto demuestra que el modelo basado en eventos desacopla temporalmente al productor y al consumidor, permitiendo que el sistema continúe aceptando solicitudes aunque el consumidor no se encuentre disponible en ese momento.
+
+### Evidencias
+
+#### Flujo TCP funcionando (HTTP 201 Created)
+
+![TCP funcionando](docs/evidencia_tcp_funcionando.png)
+
+#### Flujo Redis funcionando (HTTP 200 OK)
+
+![Redis funcionando](docs/evidencia_redis_funcionando.png)
+
+#### TCP con microservicio Cuentas detenido (HTTP 500 Internal Server Error)
+
+![TCP fallando](docs/evidencia_tcp_fallando.png)
+
+#### Redis con consumidor detenido (HTTP 200 OK)
+
+![Redis desacoplado](docs/evidencia_redis_desacoplado.png)
 
 ### 🧠 Análisis
-✍️ <<Por qué se suman las latencias y qué es el acoplamiento temporal según lo observado.>>
+
+El flujo síncrono presentó mayor latencia debido a que la solicitud atraviesa una cadena de microservicios mediante TCP, acumulando el tiempo de procesamiento y comunicación en cada salto.
+
+Cada servicio debe completar su operación antes de devolver la respuesta al cliente, por lo que una falla o demora en uno de los servicios dependientes afecta directamente al flujo completo.
+
+En contraste, el flujo asíncrono mediante Redis reduce la latencia percibida porque el Gateway únicamente publica un evento y responde sin esperar el procesamiento del consumidor.
+
+Este comportamiento evidencia el concepto de acoplamiento temporal: en una comunicación síncrona los servicios deben estar disponibles simultáneamente para completar una operación, mientras que en un modelo basado en eventos el productor y consumidor pueden operar de forma independiente.
+
 
 ---
 
