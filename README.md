@@ -1,104 +1,107 @@
-# EMM Bank System — Core Bancario Distribuido
+# <<EMM Bank System>>
 
-> MVP de arquitectura de microservicios · Sistemas Distribuidos · 6.° semestre · Tercer Parcial.
+> MVP de arquitectura de microservicios · <<Materia>> · 7.° semestre · Entrega por avances.
 
-## Equipo
+## 👥 Equipo
 | Integrante | Rol | GitHub |
 |---|---|---|
-| Mateo Medranda | Backend / Arquitectura | @MateoMedranda |
-| Erick Obando | Transportes / gRPC | @Tenkenoz |
-| Moises Benalcazar | Seguridad / Observabilidad | @MoisesBenalcazar |
-| Todos los miembros | Documentacion / QA | - |
+| Mateo Medranda | <<Backend / Arquitectura>> | @MateoMedranda |
+| Erick Obando | <<Transportes / gRPC>> | @usuario |
+| Moises Benalcázar | <<Seguridad / Observabilidad>> | @usuario |
+| Todos los miembros | <<Documentación / QA>> | @usuario |
 
-## Descripcion del MVP
+## 🧩 Descripción del MVP
+✍️ Este sistema consiste en el diseño e implementación del núcleo transaccional básico para una plataforma bancaria distribuida ("Core Bancario"). El dominio se mantiene intencionalmente sencillo para focalizar el esfuerzo en la arquitectura de comunicación síncrona y asíncrona, el manejo de la latencia y el desacoplamiento, el sistema permitirá manejar diferentes roles como un administrador, auditor, cajero y socio o cliente, se manejará un proceso transaccional para depósitos, retiros y transferencias, así como el manejo de diferentes cuentas bancarias, es un proceso sencillo con 3 microservicios, donde existirá una comunicación entre transacciones y cuentas para poder validar cuentas existentes y activas.
 
-Sistema bancario distribuido ("Core Bancario") que gestiona usuarios, cuentas bancarias y transacciones financieras (depositos, retiros, transferencias).
+Además el sistema contará con una base de datos en PostgreSQL, que puede conectarse de forma local, pero para levantamiento del entorno en producción, se tendrá una base levantada en Render, también con Redis se podrá manejar el control de eventos transaccionales para el funcionamiento asíncrono.
 
-- **MS 1 — Usuarios:** Consumidor de eventos asincronos via Redis.
-- **MS 2 — Cuentas:** Administra cuentas bancarias. Segundo salto de la cadena TCP.
-- **MS 3 — Transacciones:** Gestiona movimientos de dinero. Primer salto de la cadena TCP.
-- **API Gateway:** Punto unico de entrada HTTP. Orquesta TCP + Redis.
+- **MS 1 — Usuarios:** Este microservicio gestiona usuarios (clientes, cajeros, auditores, administradores), autenticación, auditoría y configuración general. 
+- **MS 2 — Cuentas:** Este microservicio se encarga de crear, consultar y administrar el estado de las cuentas bancarias (ahorros o corriente). 
+- **MS 3 — Transacciones:** Este microservicio gestiona los movimientos de dinero (depósitos, retiros y transferencias). 
+- **API Gateway:** punto único de entrada.
 
-## Stack
-- **Framework:** NestJS 11 (TypeScript)
-- **Sincrono:** TCP (cadena Gateway -> Transacciones -> Cuentas)
-- **Asincrono:** Redis PUB/SUB (Gateway publica, Usuarios consume sin bloquear)
-- **BD:** PostgreSQL 16 (TypeORM)
-- **Contenedores:** Docker Compose (multi-stage builds, node:20-alpine)
-- **Validacion:** class-validator + ValidationPipe
-- **Manejo de errores:** Exception Filters + NestJS Exceptions
+## 🛠️ Stack
+- **Framework:** NestJS
+- **Síncrono:** TCP · **Eventos:** Redis · **2.º transporte:** RabbitMQ/MQTT/NATS · **Contrato:** gRPC
+- **Seguridad:** JWT + Guard · **Observabilidad:** Sentry
+- **BD:** PostgreSQL · **Contenedores:** Docker Compose · **Estructura:** monorepo
 
-## Como ejecutar
+## ▶️ Cómo ejecutar
+docker compose ps
+curl http://localhost:3000/api/<<recurso>>
 
-```bash
-cd tarea-1
-docker compose up -d --build
-curl http://localhost:3000/api/health
-```
+## 🏗️ Arquitectura
+✍️ Diagrama de arquitectura
+![Diagrama de Arquitectura de Microservicios](docs/Arquitectura_V1.png)
 
-## Arquitectura
+## 🧭 Metodología
+- **Kanban:** [Kanban Sistema Bancario](https://github.com/users/MateoMedranda/projects/3/views/1) (captura en /docs).
+- **Ramificación:** <<GitHub Flow>> — `main` protegida, ramas `feat/…`, PRs revisados, tags por avance.
+- **Commits semánticos:** Conventional Commits.
 
-```
-                        +----------------------------------------------+
-                        |            API Gateway (:3000)                |
-                        |        HTTP + TCP Client + Redis Pub          |
-                        +----------+-----------------------+-----------+
-                                   |                       |
-                    +--------------+                       +--------------+
-                    | (TCP)                                             | (Redis)
-                    v                                                   v
-        +-----------------------+                         +-----------------------+
-        | Transacciones (:4003) |                         |    Usuarios (Redis)   |
-        |  TCP Microservice     |                         |   Event Subscriber    |
-        +----------+------------+                         +-----------------------+
-                   | (TCP)                                         ^
-                   v                                               |
-        +-----------------------+        Publica evento (no bloquea)
-        |    Cuentas (:4002)    |----------------------------------+
-        |  TCP Microservice     |
-        +-----------------------+
-                   |
-                   v
-        +-----------------------+
-        |   PostgreSQL (5432)   |
-        |   3 BDD separadas     |
-        +-----------------------+
-```
+## 🗺️ Patrones y principios aplicados
+✍️ <<Nómbrenlos: API Gateway, Proxy, Publisher/Subscriber, DIP, DTO+Pipes (SRP), Exception Filters. Cuáles trae Nest y cuáles agregaron ustedes.>>
 
-### Camino SINCRONO (TCP)
-```
-Cliente HTTP -> Gateway -> TCP -> Transacciones -> TCP -> Cuentas
-```
-- Patron: **Request-Response** via TCP
-- Acoplamiento temporal: si Cuentas se cae, toda la cadena falla
-- La latencia se acumula en cada salto
+---
 
-### Camino ASINCRONO (Redis)
-```
-Cliente HTTP -> Gateway -> Redis emit -> (fire & forget) -> Usuarios consume
-```
-- Patron: **Publisher/Subscriber** via Redis PUB/SUB
-- Desacoplamiento temporal: el emisor no espera al consumidor
-- Si Usuarios se cae, el Gateway aun retorna exito
+## 🟢 Avance 1 — Acoplamiento temporal y latencia · `tag v1-avance1`
+### Caminos
+- **Síncrono (TCP):** Gateway → <<A>> → <<B>>.
+- **Asíncrono (Redis):** Gateway publica evento; el consumidor procesa sin bloquear.
 
-## Manejo de excepciones
+### 📈 Latencia (con `benchmark.js`)
+| Camino | Promedio (ms) | p95 (ms) | Máx (ms) |
+|---|---|---|---|
+| Síncrono | << >> | << >> | << >> |
+| Asíncrono | << >> | << >> | << >> |
 
-- **AllExceptionsFilter:** Captura todas las excepciones en el Gateway y retorna respuesta HTTP estructurada
-- **Propagacion TCP:** Las excepciones de Cuentas se propagan a Transacciones y de Transacciones al Gateway
-- **Try-catch:** Los controladores TCP y Redis manejan errores con try-catch
+### 🧨 Acoplamiento temporal
+✍️ <<Al apagar <<B>>, la petición síncrona falla; el flujo asíncrono acepta la petición sin bloquearse (capturas).>>
 
-## Probar evento asincrono
-```bash
-curl -X POST http://localhost:3000/api/usuarios/evento \
-  -H "Content-Type: application/json" \
-  -d '{"type":"create","name":"Juan Perez","email":"juan@bank.com"}'
-```
+### 🧠 Análisis
+✍️ <<Por qué se suman las latencias y qué es el acoplamiento temporal según lo observado.>>
 
-## Endpoints
-| Metodo | Ruta | Descripcion |
-|---|---|---|
-| GET | /api/health | Health check |
-| POST | /api/transacciones | Crear transaccion (TCP chain) |
-| GET | /api/transacciones | Listar transacciones |
-| GET | /api/transacciones/:id | Obtener transaccion |
-| POST | /api/usuarios/evento | Publicar evento Redis (no bloquea) |
+---
+
+## 🟡 Avance 2 — Comunicación: gRPC + 2.º transporte + excepciones · `tag v2-avance2`
+### gRPC (contrato + monorepo)
+✍️ <<Contrato `.proto` y comunicación gRPC entre <<A>> y <<B>>. Control de errores con try/catch.>>
+
+### Segundo transporte
+✍️ <<Transporte elegido (<<RabbitMQ/MQTT/NATS>>) y flujo PUB/SUB o queue implementado.>>
+
+### 🔁 Comparación de transportes
+| Transporte | Tipo | Patrón | Uso en el proyecto |
+|---|---|---|---|
+| TCP | Síncrono | Petición-respuesta | << >> |
+| Redis | Asíncrono | PUB/SUB | << >> |
+| <<RabbitMQ/MQTT/NATS>> | Asíncrono | <<PUB/SUB o queue>> | << >> |
+| gRPC | Síncrono | Contrato/RPC | << >> |
+
+✍️ <<1 párrafo: cuándo conviene cada uno.>>
+
+### 🧯 Manejo de excepciones
+✍️ <<Qué errores se controlan y cómo (evidencia de un error que no tumba el servicio).>>
+
+---
+
+## 🔵 Avance 3 — Seguridad, observabilidad e integración (FINAL) · `tag v3-final`
+### 🔐 Autenticación y autorización
+✍️ <<Login que emite JWT; Guard que protege rutas. Evidencia: 200 con token, 401 sin token (y 403 por rol si aplica).>>
+
+### 📊 Observabilidad (Sentry)
+✍️ <<Qué se registra; captura del error en el panel de Sentry.>>
+
+### 🔗 Integración final
+✍️ <<Operación que atraviesa varios microservicios/transportes desde el Gateway.>>
+
+### 🏗️ Diagrama final
+✍️ <<Sistema integrado>>
+
+---
+
+## 🎤 Defensa
+✍️ <<Enlace a diapositivas + guion. Runbook de la demo (levantar → login → ruta protegida → operación integrada → error en Sentry). Preguntas frecuentes preparadas.>>
+
+## 🏷️ Tags de entrega
+- `v1-avance1` — <<fecha>> · `v2-avance2` — <<fecha>> · `v3-final` — <<fecha>>
