@@ -15,9 +15,16 @@ El sistema implementa el núcleo de un "Core Bancario" distribuido. El dominio s
 
 ## 2. Diagrama de Arquitectura y Flujos
 
-![Arquitectura del Sistema](./Arquitectura_V1.png)
+### Avance 1: MVP Síncrono vs Asíncrono
+![Arquitectura V1](./Arquitectura_V1.png)
 
-*Arriba se muestra el diagrama de nuestra arquitectura de microservicios. A continuación explicamos los dos caminos fundamentales que evidencia la imagen:*
+### Avance 2: Integración con gRPC y Segundo Transporte
+![Arquitectura V2](./Arquitectura_V2.png)
+
+### Avance 3: Sistema Final Integrado (Seguridad y Observabilidad)
+![Arquitectura V3](./Arquitectura_V3.png)
+
+*Arriba se muestran los diagramas de evolución de nuestra arquitectura de microservicios. A continuación explicamos los dos caminos fundamentales (evidenciados desde la V1):*
 
 ### Camino Síncrono (Acoplamiento Fuerte)
 Está representado por las flechas de color sólido **(TCP Req/Res)**. 
@@ -60,8 +67,7 @@ A lo largo de este primer avance, aplicamos:
 
 ## 5. Gestión del Proyecto (Kanban)
 
-> *(Reemplaza esta imagen con la captura de tu tablero Kanban en GitHub Projects)*
-> ![Tablero Kanban](./placeholder_kanban.png)
+![Tablero Kanban](./KANBAN.png)
 
 - **Enlace al Tablero Kanban:** [Inserta el enlace aquí]
 

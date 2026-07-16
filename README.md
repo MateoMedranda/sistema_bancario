@@ -32,7 +32,7 @@ curl http://localhost:3000/api/<<recurso>>
 
 ## 🏗️ Arquitectura
 ✍️ Diagrama de arquitectura
-![Diagrama de Arquitectura de Microservicios](docs/Arquitectura_V1.png)
+![Diagrama de Arquitectura de Microservicios](docs/Arquitectura_V2.png)
 
 ## 🧭 Metodología
 - **Kanban:** [Kanban Sistema Bancario](https://github.com/users/MateoMedranda/projects/3/views/1) (captura en /docs).
