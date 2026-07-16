@@ -27,7 +27,9 @@ Además el sistema contará con una base de datos en PostgreSQL, que puede conec
 - **BD:** PostgreSQL · **Contenedores:** Docker Compose · **Estructura:** monorepo
 
 ## ▶️ Cómo ejecutar
+
 docker compose ps
+
 curl http://localhost:3000/api/<<recurso>>
 
 ## 🏗️ Arquitectura
