@@ -1,6 +1,6 @@
-# <<EMM Bank System>>
+# EMM Bank System
 
-> MVP de arquitectura de microservicios · <<Materia>> · 7.° semestre · Entrega por avances.
+> MVP de arquitectura de microservicios · Aplicaciones Distribuidas · 7.° semestre · Entrega por avances.
 
 ## 👥 Equipo
 | Integrante | Rol | GitHub |
@@ -27,22 +27,49 @@ Además el sistema contará con una base de datos en PostgreSQL, que puede conec
 - **BD:** PostgreSQL · **Contenedores:** Docker Compose · **Estructura:** monorepo
 
 ## ▶️ Cómo ejecutar
-
+1. Clonar el repositorio y configurar las variables de entorno basándose en el archivo `.env.example` (asegúrate de que el archivo `.env` quede en la raíz del proyecto).
+2. Dado que el `docker-compose.yml` se encuentra dentro de la carpeta de la tarea y el `.env` en la raíz, debes usar el siguiente comando para levantar toda la infraestructura:
+```bash
+cd tarea-1
+docker compose --env-file ../.env up -d --build
+```
+3. Para verificar que los contenedores están corriendo o ver los logs:
+```bash
 docker compose ps
-
-curl http://localhost:3000/api/<<recurso>>
+docker compose logs -f
+```
+4. Para probar el sistema (Healthcheck del API Gateway):
+```bash
+curl http://localhost:3000/api/health
+```
 
 ## 🏗️ Arquitectura
 ✍️ Diagrama de arquitectura
 ![Diagrama de Arquitectura de Microservicios](docs/Arquitectura_V2.png)
 
 ## 🧭 Metodología
-- **Kanban:** [Kanban Sistema Bancario](https://github.com/users/MateoMedranda/projects/3/views/1) (captura en /docs).
-- **Ramificación:** <<GitHub Flow>> — `main` protegida, ramas `feat/…`, PRs revisados, tags por avance.
-- **Commits semánticos:** Conventional Commits.
+- **Kanban:** Gestionamos las tareas usando GitHub Projects mediante un flujo de estados (Backlog, Por Hacer, En Progreso, En Revisión, Hecho) para hacer trazable el progreso.
+  - 🔗 [Enlace al Tablero Kanban](https://github.com/users/MateoMedranda/projects/3/views/1)
+  - <details><summary>📸 Ver captura del tablero</summary>
+    <img src="docs/KANBAN.png" alt="Tablero Kanban" width="700"/>
+    </details>
+
+- **Ramificación (GitHub Flow):** Mantenemos la rama `main` protegida. Toda integración requiere aprobación obligatoria mediante *Pull Requests*. El desarrollo se realiza en ramas efímeras descriptivas y cada hito se congela usando **tags** (ej. `v1-avance1`).
+  - <details><summary>📸 Ver evidencia de protección de la rama</summary>
+    <img src="docs/Proteccion_Rama_Main.png" alt="Protección Rama Main" width="700"/>
+    </details>
+
+- **Commits Semánticos (Conventional Commits):** Usamos el formato `tipo(alcance): descripción` para mantener el historial del proyecto limpio y legible. Ejemplos reales de nuestro trabajo:
+  - `feat(docker): agregar Dockerfiles para microservicios`
+  - `fix(usuarios): corregir modulo faltante en produccion`
+  - `docs(readme): agregar diagrama de arquitectura y kanban`
 
 ## 🗺️ Patrones y principios aplicados
-✍️ <<Nómbrenlos: API Gateway, Proxy, Publisher/Subscriber, DIP, DTO+Pipes (SRP), Exception Filters. Cuáles trae Nest y cuáles agregaron ustedes.>>
+- **API Gateway Pattern:** Para tener un único punto de entrada unificado y enrutar las peticiones.
+- **Publisher/Subscriber (Event-Driven):** A través de Redis para aislar servicios no críticos (como notificaciones de usuarios).
+- **Request-Response (TCP):** Para procesos transaccionales que requieren validación inmediata.
+- **Single Responsibility Principle (SOLID - SRP):** Cada microservicio maneja su propia base de datos (aislamiento de datos) y sus propios DTOs.
+- **Exception Filters:** Uso de bloques `try-catch` y filtros globales en NestJS para centralizar el manejo de errores.
 
 ---
 
