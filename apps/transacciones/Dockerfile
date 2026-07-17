@@ -19,6 +19,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 
+COPY proto ./proto
 COPY --from=builder /app/dist/apps/transacciones ./dist/apps/transacciones
 # También es posible que necesite librerías compartidas si existieran, pero en Nest CLI por defecto se agrupa o se mantienen en dist/libs.
 # Para evitar problemas con imports absolutos (como tsconfig paths), se recomienda copiar todo el dist:
