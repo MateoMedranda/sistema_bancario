@@ -1,0 +1,135 @@
+# =============================================================================
+#  docker-compose.transportes.yml  —  Tarea 2 (gRPC)
+#
+#  Basado en la configuración de la Tarea 1, adaptado para la Tarea 2 con gRPC.
+#
+#  Levantar:   docker compose -f docker-compose.transportes.yml --env-file ../.env up -d --build
+# =============================================================================
+services:
+
+  db:
+    env_file:
+      - ../.env
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rootroot}
+      POSTGRES_DB: ${DB_DATABASE_USUARIOS:-UsuariosBDD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../tarea-1/init-scripts:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_broker_t2
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redisdata:/data
+
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis_insight_ui_t2
+    environment:
+      RI_APP_PORT: 5540
+      RI_APP_HOST: 0.0.0.0
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: 6379
+      RI_REDIS_ALIAS: redis_broker_t2
+    ports:
+      - "5540:5540"
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  svc-transacciones:
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/transacciones/Dockerfile
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+      SVC_CUENTAS_HOST: svc-cuentas
+      # La comunicación Transacciones->Cuentas ahora es por gRPC
+      CUENTAS_GRPC_PORT: 50052
+      TRANSACCIONES_PORT: 4003
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  svc-cuentas:
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/cuentas/Dockerfile
+    environment:
+      DB_HOST: db
+      # gRPC port
+      CUENTAS_GRPC_PORT: 50052
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  svc-usuarios:
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/usuarios/Dockerfile
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  gateway:
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/sistema_bancario/Dockerfile
+    environment:
+      PORT: 3000
+      SVC_TRANSACCIONES_HOST: svc-transacciones
+      SVC_TRANSACCIONES_PORT: 4003
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "3000:3000"
+    depends_on:
+      svc-transacciones:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:

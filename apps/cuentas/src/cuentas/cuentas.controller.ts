@@ -1,5 +1,5 @@
 import { Controller, Logger } from '@nestjs/common';
-import { MessagePattern } from '@nestjs/microservices';
+import { GrpcMethod } from '@nestjs/microservices';
 import { CuentasService } from './cuentas.service';
 
 @Controller()
@@ -8,27 +8,21 @@ export class CuentasController {
 
   constructor(private readonly cuentasService: CuentasService) {}
 
-  @MessagePattern('validate-cuenta')
+  @GrpcMethod('CuentasService', 'ValidateCuenta')
   async validate(data: { id: string }) {
-    this.logger.log(`Cuentas: validate-cuenta(${data.id}) via TCP`);
+    this.logger.log(`Cuentas: validate-cuenta(${data.id}) via gRPC`);
     return this.cuentasService.validate(data.id);
   }
 
-  @MessagePattern('find-cuenta')
+  @GrpcMethod('CuentasService', 'FindCuenta')
   async findOne(data: { id: string }) {
-    this.logger.log(`Cuentas: find-cuenta(${data.id}) via TCP`);
+    this.logger.log(`Cuentas: find-cuenta(${data.id}) via gRPC`);
     return this.cuentasService.findOne(data.id);
   }
 
-  @MessagePattern('find-all-cuentas')
-  async findAll() {
-    this.logger.log('Cuentas: findAll via TCP');
-    return this.cuentasService.findAll();
-  }
-
-  @MessagePattern('update-balance')
+  @GrpcMethod('CuentasService', 'UpdateBalance')
   async updateBalance(data: { id: string; amount: number }) {
-    this.logger.log(`Cuentas: update-balance(${data.id}, ${data.amount}) via TCP`);
+    this.logger.log(`Cuentas: update-balance(${data.id}, ${data.amount}) via gRPC`);
     return this.cuentasService.updateBalance(data.id, data.amount);
   }
 }

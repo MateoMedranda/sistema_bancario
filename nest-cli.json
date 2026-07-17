@@ -5,7 +5,14 @@
   "compilerOptions": {
     "deleteOutDir": true,
     "webpack": true,
-    "tsConfigPath": "apps/sistema_bancario/tsconfig.app.json"
+    "tsConfigPath": "apps/sistema_bancario/tsconfig.app.json",
+    "assets": [
+      {
+        "include": "**/*.proto",
+        "outDir": "dist/proto",
+        "watchAssets": true
+      }
+    ]
   },
   "monorepo": true,
   "root": "apps/sistema_bancario",

@@ -15,10 +15,11 @@ import { TransaccionesController } from './transacciones.controller';
         imports: [ConfigModule],
         inject: [ConfigService],
         useFactory: (config: ConfigService) => ({
-          transport: Transport.TCP,
+          transport: Transport.GRPC,
           options: {
-            host: config.get<string>('SVC_CUENTAS_HOST', 'localhost'),
-            port: config.get<number>('SVC_CUENTAS_PORT', 4002),
+            package: 'cuentas',
+            protoPath: require('path').join(__dirname, '../../../proto/cuentas.proto'),
+            url: `${config.get<string>('SVC_CUENTAS_HOST', 'localhost')}:${config.get<number>('CUENTAS_GRPC_PORT', 50052)}`,
           },
         }),
       },
