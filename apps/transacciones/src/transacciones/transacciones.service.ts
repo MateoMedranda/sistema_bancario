@@ -28,49 +28,44 @@ export class TransaccionesService implements OnModuleInit {
     this.cuentasService = this.client.getService<CuentasServiceGrpc>('CuentasService');
   }
 
-  async create(dto: CreateTransaccionDto): Promise<Transaccion> {
+  private async validarCuentaGrpc(id: string, label: string): Promise<any | null> {
+    try {
+      return await lastValueFrom(this.cuentasService.validateCuenta({ id }));
+    } catch (error) {
+      this.logger.error(`Error validando cuenta ${label}: ${error.message}`);
+      return null;
+    }
+  }
+
+  async create(dto: CreateTransaccionDto): Promise<Transaccion | { status: string; message: string }> {
     this.logger.log(
       `Transacciones -> gRPC -> Cuentas (validar cuenta origen: ${dto.sourceAccountId})`,
     );
 
-    let sourceAccount: any;
-    try {
-      sourceAccount = await lastValueFrom(
-        this.cuentasService.validateCuenta({ id: dto.sourceAccountId }),
-      );
-    } catch (error) {
-      this.logger.error(`Error validando cuenta origen: ${error.message}`);
-      throw new NotFoundException(
-        `Cuenta de origen ${dto.sourceAccountId} no encontrada o inactiva`,
-      );
-    }
+    const sourceAccount = await this.validarCuentaGrpc(
+      dto.sourceAccountId,
+      'origen',
+    );
 
     if (!sourceAccount) {
-      throw new NotFoundException(
-        `Cuenta de origen ${dto.sourceAccountId} no encontrada o inactiva`,
-      );
+      return {
+        status: 'FAILED',
+        message: `Cuenta de origen ${dto.sourceAccountId} no encontrada o inactiva`,
+      };
     }
 
     if (dto.type === 'TRANSFERENCIA' && dto.destinationAccountId) {
       this.logger.log('Validando cuenta destino via gRPC');
-      let destAccount: any;
-      try {
-        destAccount = await lastValueFrom(
-          this.cuentasService.validateCuenta({
-            id: dto.destinationAccountId,
-          }),
-        );
-      } catch (error) {
-        this.logger.error(`Error validando cuenta destino: ${error.message}`);
-        throw new NotFoundException(
-          `Cuenta de destino ${dto.destinationAccountId} no encontrada o inactiva`,
-        );
-      }
+      const destAccount = await this.validarCuentaGrpc(
+        dto.destinationAccountId,
+        'destino',
+      );
 
       if (!destAccount) {
-        throw new NotFoundException(
-          `Cuenta de destino ${dto.destinationAccountId} no encontrada o inactiva`,
-        );
+        return {
+          status: 'FAILED',
+          message: `Cuenta de destino ${dto.destinationAccountId} no encontrada o inactiva`,
+        };
       }
     }
 
