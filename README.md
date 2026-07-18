@@ -159,6 +159,20 @@ En el sistema bancario, TCP y gRPC se usan para operaciones que requieren respue
 ### 🧯 Manejo de excepciones
 La llamada a `validateCuenta` en el servicio de Transacciones se encapsuló con `lastValueFrom` y `try/catch` para convertir una falla de comunicación o una cuenta inexistente en una respuesta controlada del servicio, sin derrumbar el proceso. El resultado esperado en la capa de negocio es una `NotFoundException` clara para el cliente, en lugar de una excepción no manejada que corte el microservicio.
 
+### 📸 Evidencias de Avance 2
+
+- Health del Gateway:
+  ![Health Gateway](docs/avance2_health_gateway.png)
+
+- Transacción válida vía HTTP al Gateway:
+  ![Transacción válida](docs/avance2_transaccion_ok.png)
+
+- Error controlado cuando la cuenta no existe:
+  ![Error controlado](docs/avance2_transaccion_error_controlado.png)
+
+- Logs del consumidor RabbitMQ en Usuarios:
+  ![RabbitMQ logs](docs/avance2_rabbitmq_logs.png)
+
 ---
 
 ## 🔵 Avance 3 — Seguridad, observabilidad e integración (FINAL) · `tag v3-final`
