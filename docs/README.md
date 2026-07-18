@@ -93,3 +93,91 @@ Hemos utilizado un historial limpio para entender los cambios del equipo, por ej
 - `feat(docker): agregar Dockerfiles para microservicios y gateway`
 - `fix(usuarios): cambiar mapped-types a dependencias para produccion`
 - `docs(readme): agregar documentacion y analisis del avance 1`
+
+---
+
+# Documentación — Tarea 2 (Avance 2)
+
+Evidencia de errores controlados sin caída del servidor y tabla comparativa de transportes.
+
+**Autor:** Erick Obando | **Rama:** feat/evidencia-error | **Fecha:** 2026-07-17
+
+---
+
+## 1. Manejo de excepciones — Demo de errores sin caída
+
+### Prueba A: Cuenta inexistente (error controlado)
+
+![Error controlado](./avance2_error_controlado.png)
+
+- **Request:** `POST /api/transacciones` con `sourceAccountId` inexistente
+- **Resultado:** El servicio retorna un error controlado (`{ status: 'FAILED', message: '...' }`) sin caerse
+- **Análisis:** La llamada gRPC a Cuentas falla, el `try/catch` en `validarCuentaGrpc()` captura la excepción y retorna un objeto con status FAILED en vez de propagar la excepción. El microservicio sigue funcionando.
+
+### Prueba B: Health check después del error
+
+![Health Gateway](./avance2_health_gateway.png)
+
+- **Request:** `GET /api/health`
+- **Resultado:** `200 OK` — Gateway sigue vivo
+- **Análisis:** Después de un error en la cadena gRPC, el Gateway y todos los microservicios siguen operativos. El `AllExceptionsFilter` global captura cualquier excepción no manejada y retorna una respuesta HTTP estructurada.
+
+### Prueba C: Transacción exitosa (flujo normal)
+
+![Transacción OK](./avance2_transaccion_ok.png)
+
+- **Request:** `POST /api/transacciones` con datos válidos
+- **Resultado:** `201 Created` — transacción registrada
+- **Análisis:** La cadena completa funciona: Gateway → TCP → Transacciones → gRPC → Cuentas. La transacción se guarda en la BD y se publica el evento de auditoría a RabbitMQ.
+
+### Flujo de excepciones
+
+```
+HTTP Client → Gateway (AllExceptionsFilter captura todo)
+            → ValidationPipe (rechaza DTO inválido)
+            → TCP → Transacciones
+            → gRPC → Cuentas (validarCuentaGrpc con try/catch)
+            → Si falla: retorna { status: 'FAILED', message: '...' }
+            → Si falla gRPC: try/catch retorna null, servicio continúa
+```
+
+| Excepción | Origen | Cómo se maneja |
+|---|---|---|
+| `NotFoundException` | Cuentas (cuenta no existe/inactiva) | Se lanza en `CuentasService.validate()`, se propaga por gRPC |
+| `try/catch` en `validarCuentaGrpc` | Transacciones | Captura error gRPC y retorna `null` en vez de exception |
+| `ValidationPipe` | Gateway | Rechaza requests con DTO inválido antes del controlador |
+| `AllExceptionsFilter` | Gateway | Captura todas las excepciones y retorna JSON estructurado |
+
+---
+
+## 2. Segundo transporte — RabbitMQ
+
+### Evidencia de consumo
+
+![RabbitMQ logs](./avance2_rabbitmq_logs.png)
+
+- **Cola:** `auditoria_queue`
+- **Publisher:** Transacciones emite evento `auditar_transaccion` después de crear una transacción
+- **Consumer:** Usuarios consume el evento via `@EventPattern('auditar_transaccion')`
+- **Análisis:** RabbitMQ funciona como segundo canal asíncrono, desacoplando la auditoría del flujo principal. Si Usuarios se cae, la transacción igual se registra.
+
+---
+
+## 3. Tabla comparativa de transportes
+
+| Transporte | Tipo | Patrón | Cuándo lo usaron |
+|---|---|---|---|
+| TCP | Síncrono | Petición-respuesta | Gateway → Transacciones (cadena síncrona, primer salto) |
+| gRPC | Síncrono | Contrato/RPC | Transacciones → Cuentas (validar cuenta con contrato `.proto`) |
+| Redis | Asíncrono | PUB/SUB | Gateway → Usuarios (eventos de usuario, fire-and-forget) |
+| RabbitMQ | Asíncrono | Queue / PUB-SUB | Transacciones → Usuarios (auditoría vía `auditoria_queue`) |
+
+### Análisis: ¿Cuándo conviene cada transporte?
+
+**TCP** conviene cuando se necesita respuesta inmediata en una cadena de servicios, como el Gateway delegando a Transacciones. Sin embargo, tiene acoplamiento temporal: si un eslabón falla, toda la cadena falla.
+
+**gRPC** es preferible sobre TCP cuando se requiere un contrato formal (`.proto`) que documenta tipos y métodos disponibles, facilitando la interoperabilidad y el mantenimiento. Además, el manejo de errores es más preciso gracias a los status codes definidos en el contrato.
+
+**Redis** conviene para eventos asíncronos que no bloquean al emisor. El Gateway publica un evento y no espera respuesta, lo que permite que el sistema siga funcionando aunque el consumidor (Usuarios) esté temporalmente caído.
+
+**RabbitMQ** conviene cuando se necesita persistencia de mensajes y routing más sofisticado que PUB/SUB simple. En nuestro caso, la cola `auditoria_queue` garantiza que los eventos de auditoría se procesen aunque el consumidor no esté disponible inmediatamente, a diferencia de Redis que pierde mensajes si el subscriber no está conectado.
