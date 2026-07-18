@@ -23,6 +23,21 @@ import { TransaccionesController } from './transacciones.controller';
           },
         }),
       },
+      {
+        name: 'AUDITORIA_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [config.get<string>('RABBITMQ_URL', 'amqp://localhost:5672')],
+            queue: 'auditoria_queue',
+            queueOptions: {
+              durable: false,
+            },
+          },
+        }),
+      },
     ]),
   ],
   controllers: [TransaccionesController],

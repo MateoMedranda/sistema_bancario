@@ -31,7 +31,7 @@ services:
     image: redis:7-alpine
     container_name: redis_broker_t2
     ports:
-      - "6379:6379"
+      - "6380:6379"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -40,6 +40,19 @@ services:
       retries: 5
     volumes:
       - redisdata:/data
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq_broker_t2
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
 
   redis-insight:
     image: redis/redisinsight:latest
@@ -67,13 +80,15 @@ services:
       DB_HOST: db
       REDIS_HOST: redis
       SVC_CUENTAS_HOST: svc-cuentas
-      # La comunicación Transacciones->Cuentas ahora es por gRPC
       CUENTAS_GRPC_PORT: 50052
       TRANSACCIONES_PORT: 4003
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     restart: unless-stopped
 
@@ -102,10 +117,13 @@ services:
       DB_HOST: db
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       db:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     restart: unless-stopped
 

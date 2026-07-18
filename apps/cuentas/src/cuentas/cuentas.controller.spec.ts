@@ -8,7 +8,16 @@ describe('CuentasController', () => {
   beforeEach(async () => {
     const app: TestingModule = await Test.createTestingModule({
       controllers: [CuentasController],
-      providers: [CuentasService],
+      providers: [
+        {
+          provide: CuentasService,
+          useValue: {
+            validate: jest.fn(),
+            findOne: jest.fn(),
+            updateBalance: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     cuentasController = app.get<CuentasController>(CuentasController);

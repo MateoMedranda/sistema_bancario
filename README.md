@@ -141,23 +141,37 @@ Este comportamiento evidencia el concepto de acoplamiento temporal: en una comun
 
 ## 🟡 Avance 2 — Comunicación: gRPC + 2.º transporte + excepciones · `tag v2-avance2`
 ### gRPC (contrato + monorepo)
-✍️ <<Contrato `.proto` y comunicación gRPC entre <<A>> y <<B>>. Control de errores con try/catch.>>
+El microservicio de Transacciones consume el contrato definido en `proto/cuentas.proto` a través de `CUENTAS_SERVICE`, usando gRPC para validar cuentas antes de registrar una transacción. La comunicación se adapta al patrón monorepo NestJS con `ClientsModule.registerAsync`, donde `protoPath` apunta al contrato y la URL del servicio se resuelve mediante variables de entorno.
 
 ### Segundo transporte
-✍️ <<Transporte elegido (<<RabbitMQ/MQTT/NATS>>) y flujo PUB/SUB o queue implementado.>>
+Se incorporó RabbitMQ como segundo transporte asincrónico con cola `auditoria_queue`. En el flujo implementado, Transacciones publica el evento `auditar_transaccion` y Usuarios lo consume en un `EventPattern` de RabbitMQ, manteniendo el transporte Redis ya usado para eventos de usuario.
 
 ### 🔁 Comparación de transportes
 | Transporte | Tipo | Patrón | Uso en el proyecto |
 |---|---|---|---|
-| TCP | Síncrono | Petición-respuesta | << >> |
-| Redis | Asíncrono | PUB/SUB | << >> |
-| <<RabbitMQ/MQTT/NATS>> | Asíncrono | <<PUB/SUB o queue>> | << >> |
-| gRPC | Síncrono | Contrato/RPC | << >> |
+| TCP | Síncrono | Petición-respuesta | Comunicación principal entre Gateway y Transacciones |
+| Redis | Asíncrono | PUB/SUB | Consumidor de eventos de usuario en Usuarios |
+| RabbitMQ | Asíncrono | Queue / PUB-SUB | Cola `auditoria_queue` para auditoría de transacciones |
+| gRPC | Síncrono | Contrato/RPC | Validación de cuentas entre Transacciones y Cuentas |
 
-✍️ <<1 párrafo: cuándo conviene cada uno.>>
+En el sistema bancario, TCP y gRPC se usan para operaciones que requieren respuesta inmediata y contrato explícito, mientras que Redis y RabbitMQ se usan para desacoplar procesos en segundo plano y evitar bloquear al emisor.
 
 ### 🧯 Manejo de excepciones
-✍️ <<Qué errores se controlan y cómo (evidencia de un error que no tumba el servicio).>>
+La llamada a `validateCuenta` en el servicio de Transacciones se encapsuló con `lastValueFrom` y `try/catch` para convertir una falla de comunicación o una cuenta inexistente en una respuesta controlada del servicio, sin derrumbar el proceso. El resultado esperado en la capa de negocio es una `NotFoundException` clara para el cliente, en lugar de una excepción no manejada que corte el microservicio.
+
+### 📸 Evidencias de Avance 2
+
+- Health del Gateway:
+  ![Health Gateway](docs/avance2_health_gateway.png)
+
+- Transacción válida vía HTTP al Gateway:
+  ![Transacción válida](docs/avance2_transaccion_ok.png)
+
+- Error controlado cuando la cuenta no existe:
+  ![Error controlado](docs/avance2_transaccion_error_controlado.png)
+
+- Logs del consumidor RabbitMQ en Usuarios:
+  ![RabbitMQ logs](docs/avance2_rabbitmq_logs.png)
 
 ---
 

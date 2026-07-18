@@ -14,4 +14,11 @@ export class UsuariosController {
     this.logger.log(`Datos del evento: ${JSON.stringify(data)}`);
     return this.usuariosService.processEvento(data);
   }
+
+  @EventPattern('auditar_transaccion')
+  async handleAuditoriaTransaccion(@Payload() data: Record<string, any>) {
+    this.logger.log('Usuarios: evento RabbitMQ recibido en auditoria_queue');
+    this.logger.log(`Datos de auditoría: ${JSON.stringify(data)}`);
+    return this.usuariosService.processEvento(data);
+  }
 }

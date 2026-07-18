@@ -16,7 +16,7 @@ export class Transaccion {
   @Column({ nullable: true, type: 'varchar', length: 200 })
   destinationAccountId!: string;
 
-  @Column({ nullable: false, unique: true, type: 'varchar', length: 200 })
+  @Column({ nullable: false, type: 'varchar', length: 200 })
   type!: string;
 
   @Column({ nullable: true, type: 'varchar', length: 200 })
