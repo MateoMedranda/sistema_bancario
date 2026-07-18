@@ -1,8 +1,8 @@
 import { Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
-import type { ClientGrpc } from '@nestjs/microservices';
+import type { ClientGrpc, ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { firstValueFrom, Observable } from 'rxjs';
+import { lastValueFrom, Observable } from 'rxjs';
 import { Transaccion } from './entities/transaccion.entity';
 import { CreateTransaccionDto } from './dto/create-transaccion.dto';
 
@@ -20,6 +20,8 @@ export class TransaccionesService implements OnModuleInit {
     private readonly repo: Repository<Transaccion>,
     @Inject('CUENTAS_SERVICE')
     private readonly client: ClientGrpc,
+    @Inject('AUDITORIA_SERVICE')
+    private readonly auditoriaClient: ClientProxy,
   ) {}
 
   onModuleInit() {
@@ -31,14 +33,17 @@ export class TransaccionesService implements OnModuleInit {
       `Transacciones -> gRPC -> Cuentas (validar cuenta origen: ${dto.sourceAccountId})`,
     );
 
-    const sourceAccount = await firstValueFrom(
-      this.cuentasService.validateCuenta({ id: dto.sourceAccountId })
-    ).catch((error) => {
+    let sourceAccount: any;
+    try {
+      sourceAccount = await lastValueFrom(
+        this.cuentasService.validateCuenta({ id: dto.sourceAccountId }),
+      );
+    } catch (error) {
       this.logger.error(`Error validando cuenta origen: ${error.message}`);
       throw new NotFoundException(
         `Cuenta de origen ${dto.sourceAccountId} no encontrada o inactiva`,
       );
-    });
+    }
 
     if (!sourceAccount) {
       throw new NotFoundException(
@@ -48,16 +53,19 @@ export class TransaccionesService implements OnModuleInit {
 
     if (dto.type === 'TRANSFERENCIA' && dto.destinationAccountId) {
       this.logger.log('Validando cuenta destino via gRPC');
-      const destAccount = await firstValueFrom(
-        this.cuentasService.validateCuenta({
-          id: dto.destinationAccountId,
-        })
-      ).catch((error) => {
+      let destAccount: any;
+      try {
+        destAccount = await lastValueFrom(
+          this.cuentasService.validateCuenta({
+            id: dto.destinationAccountId,
+          }),
+        );
+      } catch (error) {
         this.logger.error(`Error validando cuenta destino: ${error.message}`);
         throw new NotFoundException(
           `Cuenta de destino ${dto.destinationAccountId} no encontrada o inactiva`,
         );
-      });
+      }
 
       if (!destAccount) {
         throw new NotFoundException(
@@ -75,6 +83,17 @@ export class TransaccionesService implements OnModuleInit {
 
     const saved = await this.repo.save(transaccion);
     this.logger.log(`Transaccion ${saved.id} creada exitosamente`);
+
+    this.auditoriaClient.emit('auditar_transaccion', {
+      transaccionId: saved.id,
+      type: dto.type,
+      sourceAccountId: dto.sourceAccountId,
+      destinationAccountId: dto.destinationAccountId,
+      amount: dto.amount,
+      status: saved.status,
+      createdAt: saved.createdAt,
+    });
+
     return saved;
   }
 
