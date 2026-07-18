@@ -45,7 +45,7 @@ curl http://localhost:3000/api/health
 
 ## 🏗️ Arquitectura
 ✍️ Diagrama de arquitectura
-![Diagrama de Arquitectura de Microservicios](docs/Arquitectura_V2.png)
+![Diagrama de Arquitectura de Microservicios](docs/Arquitectura_V4.png)
 
 ## 🧭 Metodología
 - **Kanban:** Gestionamos las tareas usando GitHub Projects mediante un flujo de estados (Backlog, Por Hacer, En Progreso, En Revisión, Hecho) para hacer trazable el progreso.

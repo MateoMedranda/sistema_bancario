@@ -24,6 +24,9 @@ El sistema implementa el núcleo de un "Core Bancario" distribuido. El dominio s
 ### Avance 3: Sistema Final Integrado (Seguridad y Observabilidad)
 ![Arquitectura V3](./Arquitectura_V3.png)
 
+### Avance 4: Arquitectura Final (Versión 4)
+![Arquitectura V4](./Arquitectura_V4.png)
+
 *Arriba se muestran los diagramas de evolución de nuestra arquitectura de microservicios. A continuación explicamos los dos caminos fundamentales (evidenciados desde la V1):*
 
 ### Camino Síncrono (Acoplamiento Fuerte)
