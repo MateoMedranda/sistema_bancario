@@ -16,10 +16,10 @@ export class Cuenta {
   @Column({ nullable: false, unique: true, type: 'varchar', length: 10 })
   accountNumber!: string;
 
-  @Column({ nullable: false, unique: true, type: 'varchar', length: 200 })
+  @Column({ nullable: false, type: 'varchar', length: 200 })
   type!: string;
 
-  @Column({ nullable: false})
+  @Column({type: 'decimal', precision: 14, scale: 2, nullable: false})
   balance!: number;
 
   @Column({ nullable: false, type: 'varchar', length: 20 })

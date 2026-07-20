@@ -28,7 +28,7 @@ export class Transaccion {
   @Column({nullable: true, type: 'decimal', precision: 14, scale: 2, default: 0 })
   fee: number;
 
-  @Column({ nullable: false, type: 'varchar', length: 200 })
+  @Column({ nullable: false, type: 'varchar', length: 200, unique: true })
   refCode!: string;
 
   @Column({ nullable: false, type: 'varchar', length: 20 })
