@@ -40,6 +40,7 @@ export class CuentasService {
   async updateBalance(id: string, amount: number): Promise<Cuenta> {
     const cuenta = await this.validate(id);
     cuenta.balance = Number(cuenta.balance) + amount;
+    cuenta.balance = Number(cuenta.balance.toFixed(2));
     return this.repo.save(cuenta);
   }
 }
