@@ -1,5 +1,5 @@
-import { Inject, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
-import type { ClientGrpc, ClientProxy } from '@nestjs/microservices';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { RpcException, type ClientGrpc, type ClientProxy } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { lastValueFrom, Observable } from 'rxjs';
@@ -32,7 +32,8 @@ export class TransaccionesService implements OnModuleInit {
     try {
       return await lastValueFrom(this.cuentasService.validateCuenta({ id }));
     } catch (error) {
-      this.logger.error(`Error validando cuenta ${label}: ${error.message}`);
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error validando cuenta ${label}: ${message}`);
       return null;
     }
   }
@@ -99,7 +100,11 @@ export class TransaccionesService implements OnModuleInit {
   async findOne(id: string): Promise<Transaccion> {
     const transaccion = await this.repo.findOneBy({ id });
     if (!transaccion) {
-      throw new NotFoundException(`Transaccion con ID ${id} no encontrada`);
+      throw new RpcException({
+        statusCode: 404,
+        message: `Transaccion con ID ${id} no encontrada`,
+        error: 'Not Found',
+      });
     }
     return transaccion;
   }

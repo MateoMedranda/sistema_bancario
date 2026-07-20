@@ -1,4 +1,5 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Cuenta } from './entities/cuenta.entity';
@@ -19,7 +20,11 @@ export class CuentasService {
   async findOne(id: string): Promise<Cuenta> {
     const cuenta = await this.repo.findOneBy({ id });
     if (!cuenta) {
-      throw new NotFoundException(`Cuenta con ID ${id} no encontrada`);
+      throw new RpcException({
+        statusCode: 404,
+        message: `Cuenta con ID ${id} no encontrada`,
+        error: 'Not Found',
+      });
     }
     return cuenta;
   }
@@ -28,11 +33,19 @@ export class CuentasService {
     const cuenta = await this.repo.findOneBy({ id });
     if (!cuenta) {
       this.logger.warn(`Cuenta ${id} no encontrada`);
-      throw new NotFoundException(`Cuenta ${id} no encontrada`);
+      throw new RpcException({
+        statusCode: 404,
+        message: `Cuenta ${id} no encontrada`,
+        error: 'Not Found',
+      });
     }
     if (cuenta.status !== 'ACTIVE') {
       this.logger.warn(`Cuenta ${id} esta inactiva (status: ${cuenta.status})`);
-      throw new NotFoundException(`Cuenta ${id} esta inactiva`);
+      throw new RpcException({
+        statusCode: 409,
+        message: `Cuenta ${id} esta inactiva`,
+        error: 'Conflict',
+      });
     }
     return cuenta;
   }

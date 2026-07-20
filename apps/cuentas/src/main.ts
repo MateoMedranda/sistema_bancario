@@ -3,6 +3,7 @@ import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { join } from 'path';
+import { RpcExceptionsFilter } from '../../common/src/filters/rpc-exceptions.filter';
 
 async function bootstrap() {
   const logger = new Logger('Cuentas');
@@ -17,6 +18,7 @@ async function bootstrap() {
       },
     },
   );
+  app.useGlobalFilters(new RpcExceptionsFilter());
   await app.listen();
   logger.log(
     `Microservicio Cuentas escuchando por gRPC en puerto ${process.env.CUENTAS_GRPC_PORT ?? 50052}`,

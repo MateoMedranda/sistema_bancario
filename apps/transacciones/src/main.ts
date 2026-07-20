@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { RpcExceptionsFilter } from '../../common/src/filters/rpc-exceptions.filter';
 
 async function bootstrap() {
   const logger = new Logger('Transacciones');
@@ -15,6 +16,7 @@ async function bootstrap() {
       },
     },
   );
+  app.useGlobalFilters(new RpcExceptionsFilter());
   await app.listen();
   logger.log(
     `Microservicio Transacciones escuchando por TCP en puerto ${process.env.TRANSACCIONES_PORT ?? 4003}`,
