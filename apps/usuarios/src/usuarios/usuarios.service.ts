@@ -10,7 +10,7 @@ export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private readonly repo: Repository<Usuario>,
-  ) { }
+  ) {}
 
   async processEvento(data: Record<string, any>): Promise<void> {
     this.logger.log('Procesando evento de usuario de forma asincrona...');
@@ -32,7 +32,6 @@ export class UsuariosService {
           ipAddress: data.ipAddress ?? '127.0.0.1',
         });
 
-
         await this.repo.save(usuario);
         this.logger.log(`Usuario ${usuario.name} creado via evento asincrono`);
       } else {
@@ -40,7 +39,8 @@ export class UsuariosService {
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`Error al procesar evento: ${message}`);
+      const stack = error instanceof Error ? error.stack : undefined;
+      this.logger.error(`Error al procesar evento asincrono: ${message}`, stack);
     }
   }
 }

@@ -2,29 +2,38 @@ import { NestFactory } from '@nestjs/core';
 import { Transport, MicroserviceOptions } from '@nestjs/microservices';
 import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { RpcExceptionsFilter } from '../../common/src/filters/rpc-exceptions.filter';
 
 async function bootstrap() {
   const logger = new Logger('Usuarios');
   const app = await NestFactory.create(AppModule);
 
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.REDIS,
-    options: {
-      host: process.env.REDIS_HOST ?? 'localhost',
-      port: +(process.env.REDIS_PORT ?? 6379),
-    },
-  });
+  app.useGlobalFilters(new RpcExceptionsFilter());
 
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.RMQ,
-    options: {
-      urls: [process.env.RABBITMQ_URL ?? 'amqp://localhost:5672'],
-      queue: 'auditoria_queue',
-      queueOptions: {
-        durable: false,
+  app.connectMicroservice<MicroserviceOptions>(
+    {
+      transport: Transport.REDIS,
+      options: {
+        host: process.env.REDIS_HOST ?? 'localhost',
+        port: +(process.env.REDIS_PORT ?? 6379),
       },
     },
-  });
+    { inheritAppConfig: true },
+  );
+
+  app.connectMicroservice<MicroserviceOptions>(
+    {
+      transport: Transport.RMQ,
+      options: {
+        urls: [process.env.RABBITMQ_URL ?? 'amqp://localhost:5672'],
+        queue: 'auditoria_queue',
+        queueOptions: {
+          durable: false,
+        },
+      },
+    },
+    { inheritAppConfig: true },
+  );
 
   await app.startAllMicroservices();
   await app.listen(3001);
