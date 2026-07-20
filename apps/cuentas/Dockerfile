@@ -19,7 +19,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 
-COPY proto ./proto
+COPY libs ./libs
 COPY --from=builder /app/dist ./dist
 
 CMD ["node", "dist/apps/cuentas/main.js"]

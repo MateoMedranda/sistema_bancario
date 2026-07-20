@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CUENTAS_PACKAGE, getCuentasProtoPath } from '@contracts';
 import { Transaccion } from './entities/transaccion.entity';
 import { TransaccionesService } from './transacciones.service';
 import { TransaccionesController } from './transacciones.controller';
@@ -17,8 +18,8 @@ import { TransaccionesController } from './transacciones.controller';
         useFactory: (config: ConfigService) => ({
           transport: Transport.GRPC,
           options: {
-            package: 'cuentas',
-            protoPath: require('path').join(__dirname, '../../../proto/cuentas.proto'),
+            package: CUENTAS_PACKAGE,
+            protoPath: getCuentasProtoPath(),
             url: `${config.get<string>('SVC_CUENTAS_HOST', 'localhost')}:${config.get<number>('CUENTAS_GRPC_PORT', 50052)}`,
           },
         }),

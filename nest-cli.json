@@ -17,6 +17,22 @@
   "monorepo": true,
   "root": "apps/sistema_bancario",
   "projects": {
+    "contracts": {
+      "type": "library",
+      "root": "libs/contracts",
+      "entryFile": "index",
+      "sourceRoot": "libs/contracts/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/contracts/tsconfig.lib.json",
+        "assets": [
+          {
+            "include": "proto/*.proto",
+            "outDir": "dist/libs/contracts/src",
+            "watchAssets": true
+          }
+        ]
+      }
+    },
     "usuarios": {
       "type": "application",
       "root": "apps/usuarios",

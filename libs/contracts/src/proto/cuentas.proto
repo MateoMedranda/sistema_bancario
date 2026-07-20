@@ -1,0 +1,26 @@
+syntax = "proto3";
+package cuentas;
+
+service CuentasService {
+  rpc ValidateCuenta (CuentaRequest) returns (CuentaResponse);
+  rpc FindCuenta (CuentaRequest) returns (CuentaResponse);
+  rpc UpdateBalance (UpdateBalanceRequest) returns (CuentaResponse);
+}
+
+message CuentaRequest {
+  string id = 1;
+}
+
+message UpdateBalanceRequest {
+  string id = 1;
+  double amount = 2;
+}
+
+message CuentaResponse {
+  string id = 1;
+  string userId = 2;
+  string accountNumber = 3;
+  string type = 4;
+  double balance = 5;
+  string status = 6;
+}
