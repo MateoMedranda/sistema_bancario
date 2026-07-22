@@ -93,8 +93,8 @@ Se utilizó el script `benchmark.js` para ejecutar múltiples peticiones POST co
 
 | Camino | Promedio (ms) | p95 (ms) | Máx (ms) |
 |---|---:|---:|---:|
-| TCP (Transacciones) | 10.17 | 11 | 100 |
-| Redis (Usuarios) | 3.04 | 4 | 65 |
+| TCP (Transacciones) | 4.59 | 6 | 73 |
+| Redis (Usuarios) | 2.69 | 3 | 73 |
 
 ### 🧨 Acoplamiento temporal
 
