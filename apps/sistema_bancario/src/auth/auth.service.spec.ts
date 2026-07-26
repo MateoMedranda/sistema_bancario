@@ -1,13 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
+import { of, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 
-describe('AuthService (Generación de JWT y Validación Segura)', () => {
+describe('AuthService (Validación por BD con TCP y Hashing con Sal)', () => {
   let service: AuthService;
   let jwtService: JwtService;
+  let mockUsuariosClient: any;
 
   beforeEach(async () => {
+    mockUsuariosClient = {
+      send: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         JwtModule.register({
@@ -15,7 +21,13 @@ describe('AuthService (Generación de JWT y Validación Segura)', () => {
           signOptions: { expiresIn: 3600, algorithm: 'HS256' },
         }),
       ],
-      providers: [AuthService],
+      providers: [
+        AuthService,
+        {
+          provide: 'USUARIOS_SERVICE',
+          useValue: mockUsuariosClient,
+        },
+      ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
@@ -27,59 +39,79 @@ describe('AuthService (Generación de JWT y Validación Segura)', () => {
   });
 
   describe('validateUser', () => {
-    it('debe validar exitosamente credenciales correctas (usuario admin)', async () => {
-      const user = await service.validateUser('admin', 'admin123');
-      expect(user).toBeDefined();
-      expect(user.username).toBe('admin');
-      expect(user.role).toBe('ADMIN');
-      expect(user.id).toBe('admin-uuid-0001');
-    });
+    it('debe validar exitosamente credenciales correctas recibiendo datos desde UsuariosBDD por TCP', async () => {
+      mockUsuariosClient.send.mockReturnValue(
+        of({
+          id: 'user1',
+          name: 'cliente',
+          email: 'cliente@banco.com',
+          role: 'CLIENTE',
+          status: 'ACTIVE',
+        }),
+      );
 
-    it('debe validar exitosamente usando el correo electrónico (email)', async () => {
-      const user = await service.validateUser('cliente@banco.com', 'cliente123');
+      const user = await service.validateUser('cliente', 'cliente123');
       expect(user).toBeDefined();
       expect(user.username).toBe('cliente');
       expect(user.role).toBe('CLIENTE');
-      expect(user.id).toBe('user-1');
+      expect(user.id).toBe('user1');
+      expect(mockUsuariosClient.send).toHaveBeenCalledWith(
+        { cmd: 'validate_user' },
+        { usernameOrEmail: 'cliente', pass: 'cliente123' },
+      );
     });
 
-    it('debe lanzar UnauthorizedException al recibir una contraseña incorrecta (verificación timing-safe)', async () => {
-      await expect(service.validateUser('admin', 'wrongpassword')).rejects.toThrow(
+    it('debe lanzar UnauthorizedException cuando el microservicio BD retorna null (contraseña o usuario inválido)', async () => {
+      mockUsuariosClient.send.mockReturnValue(of(null));
+
+      await expect(service.validateUser('admin', 'wrongpass')).rejects.toThrow(
         UnauthorizedException,
       );
     });
 
-    it('debe lanzar UnauthorizedException al recibir un usuario inexistente', async () => {
-      await expect(service.validateUser('hacker', 'password')).rejects.toThrow(
+    it('debe lanzar UnauthorizedException ante error de conexión TCP con microservicio', async () => {
+      mockUsuariosClient.send.mockReturnValue(
+        throwError(() => new Error('Connection refused')),
+      );
+
+      await expect(service.validateUser('cliente', 'pass')).rejects.toThrow(
         UnauthorizedException,
       );
     });
   });
 
   describe('login', () => {
-    it('debe generar y retornar un token JWT firmado de forma segura para credenciales válidas', async () => {
-      const result = await service.login({ username: 'cliente', password: 'cliente123' });
+    it('debe generar un token JWT firmado al obtener un usuario válido desde BD', async () => {
+      mockUsuariosClient.send.mockReturnValue(
+        of({
+          id: 'user1',
+          name: 'cliente',
+          email: 'cliente@banco.com',
+          role: 'CLIENTE',
+          status: 'ACTIVE',
+        }),
+      );
 
-      expect(result).toBeDefined();
+      const result = await service.login({
+        username: 'cliente',
+        password: 'cliente123',
+      });
+
       expect(result.access_token).toBeDefined();
       expect(result.token_type).toBe('Bearer');
       expect(result.expires_in).toBe(3600);
       expect(result.user).toEqual({
-        id: 'user-1',
+        id: 'user1',
         username: 'cliente',
         email: 'cliente@banco.com',
         role: 'CLIENTE',
       });
 
-      // Verificamos la firma y los reclamos (claims) contenidos en el token JWT
       const decoded = jwtService.verify(result.access_token);
-      expect(decoded.sub).toBe('user-1');
+      expect(decoded.sub).toBe('user1');
       expect(decoded.username).toBe('cliente');
       expect(decoded.email).toBe('cliente@banco.com');
       expect(decoded.role).toBe('CLIENTE');
-      expect(decoded.iss).toBe('sistema-bancario-gateway');
-      expect(decoded.aud).toBe('sistema-bancario-clients');
-      expect(decoded.jti).toBeDefined();
     });
   });
 });

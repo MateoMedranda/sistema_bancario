@@ -2,11 +2,25 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
+import { of } from 'rxjs';
 
 describe('AuthController (POST /api/auth/login)', () => {
   let controller: AuthController;
+  let mockUsuariosClient: any;
 
   beforeEach(async () => {
+    mockUsuariosClient = {
+      send: jest.fn().mockReturnValue(
+        of({
+          id: 'user1',
+          name: 'cliente',
+          email: 'cliente@banco.com',
+          role: 'CLIENTE',
+          status: 'ACTIVE',
+        }),
+      ),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       imports: [
         JwtModule.register({
@@ -15,7 +29,13 @@ describe('AuthController (POST /api/auth/login)', () => {
         }),
       ],
       controllers: [AuthController],
-      providers: [AuthService],
+      providers: [
+        AuthService,
+        {
+          provide: 'USUARIOS_SERVICE',
+          useValue: mockUsuariosClient,
+        },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
@@ -25,7 +45,7 @@ describe('AuthController (POST /api/auth/login)', () => {
     expect(controller).toBeDefined();
   });
 
-  it('debe retornar access_token y datos del usuario al autenticar exitosamente', async () => {
+  it('debe retornar access_token y datos del usuario al autenticar exitosamente por BD', async () => {
     const response = await controller.login({
       username: 'cliente',
       password: 'cliente123',

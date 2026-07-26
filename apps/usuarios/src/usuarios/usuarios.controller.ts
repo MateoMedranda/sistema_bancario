@@ -1,5 +1,5 @@
 import { Controller, Logger } from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
 import { UsuariosService } from './usuarios.service';
 
 @Controller()
@@ -7,6 +7,14 @@ export class UsuariosController {
   private readonly logger = new Logger(UsuariosController.name);
 
   constructor(private readonly usuariosService: UsuariosService) {}
+
+  @MessagePattern({ cmd: 'validate_user' })
+  async handleValidateUser(@Payload() data: { usernameOrEmail: string; pass: string }) {
+    this.logger.log(
+      `Usuarios: petición TCP recibida para validar credenciales de [${data.usernameOrEmail}]`,
+    );
+    return this.usuariosService.validateUserCredentials(data.usernameOrEmail, data.pass);
+  }
 
   @EventPattern('usuario-evento')
   async handleUsuarioEvento(@Payload() data: Record<string, any>) {

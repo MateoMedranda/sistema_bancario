@@ -1,5 +1,12 @@
-import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  Logger,
+  Inject,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
 import { LoginDto } from './dto/login.dto';
 
@@ -11,107 +18,67 @@ export interface UserPayload {
   status: string;
 }
 
-interface StoredUser {
-  id: string;
-  username: string;
-  email: string;
-  role: 'ADMIN' | 'CLIENTE' | 'CAJERO' | 'AUDITOR';
-  status: string;
-  passwordHash: string;
-}
-
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private readonly users: StoredUser[];
 
-  constructor(private readonly jwtService: JwtService) {
-    // Inicialización del almacén de usuarios en memoria con contraseñas hash SHA-256
-    // Para el entorno bancario, almacenamos hash y comparamos de forma segura en tiempo constante.
-    this.users = [
-      {
-        id: 'admin-uuid-0001',
-        username: 'admin',
-        email: 'admin@banco.com',
-        role: 'ADMIN',
-        status: 'ACTIVE',
-        passwordHash: this.hashPassword('admin123'),
-      },
-      {
-        id: 'user-1', // ID que coincide con el propietario de cuenta predeterminado en CuentasBDD
-        username: 'cliente',
-        email: 'cliente@banco.com',
-        role: 'CLIENTE',
-        status: 'ACTIVE',
-        passwordHash: this.hashPassword('cliente123'),
-      },
-      {
-        id: 'cajero-uuid-0001',
-        username: 'cajero',
-        email: 'cajero@banco.com',
-        role: 'CAJERO',
-        status: 'ACTIVE',
-        passwordHash: this.hashPassword('cajero123'),
-      },
-      {
-        id: 'auditor-uuid-0001',
-        username: 'auditor',
-        email: 'auditor@banco.com',
-        role: 'AUDITOR',
-        status: 'ACTIVE',
-        passwordHash: this.hashPassword('auditor123'),
-      },
-    ];
-  }
+  constructor(
+    private readonly jwtService: JwtService,
+    @Inject('USUARIOS_SERVICE')
+    private readonly usuariosClient: ClientProxy,
+  ) {}
 
   /**
-   * Genera hash SHA-256 de la contraseña
+   * Valida las credenciales del usuario en la base de datos (UsuariosBDD)
+   * llamando por TCP al microservicio de Usuarios en tiempo real.
    */
-  private hashPassword(password: string): string {
-    return crypto.createHash('sha256').update(password).digest('hex');
-  }
-
-  /**
-   * Compara de forma segura dos hashes usando timingSafeEqual para prevenir ataques de canal lateral
-   */
-  private verifyPassword(inputPassword: string, storedHash: string): boolean {
-    const inputHash = this.hashPassword(inputPassword);
-    const inputBuffer = Buffer.from(inputHash, 'utf8');
-    const storedBuffer = Buffer.from(storedHash, 'utf8');
-
-    if (inputBuffer.length !== storedBuffer.length) {
-      return false;
+  async validateUser(
+    usernameOrEmail: string,
+    pass: string,
+  ): Promise<UserPayload> {
+    let user: any;
+    try {
+      user = await firstValueFrom(
+        this.usuariosClient.send(
+          { cmd: 'validate_user' },
+          { usernameOrEmail, pass },
+        ),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(
+        `Error al consultar microservicio USUARIOS para autenticación BD: ${message}`,
+      );
+      throw new UnauthorizedException(
+        'No se pudieron validar las credenciales en la base de datos',
+      );
     }
-    return crypto.timingSafeEqual(inputBuffer, storedBuffer);
-  }
 
-  /**
-   * Valida las credenciales del usuario (username o correo electrónico + contraseña)
-   */
-  async validateUser(usernameOrEmail: string, pass: string): Promise<UserPayload> {
-    const user = this.users.find(
-      (u) =>
-        u.username.toLowerCase() === usernameOrEmail.toLowerCase() ||
-        u.email.toLowerCase() === usernameOrEmail.toLowerCase(),
-    );
-
-    if (!user || !this.verifyPassword(pass, user.passwordHash)) {
-      this.logger.warn(`Intento de login fallido para usuario: ${usernameOrEmail}`);
+    if (!user) {
+      this.logger.warn(
+        `Intento de login fallido en BD para usuario: ${usernameOrEmail}`,
+      );
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     if (user.status !== 'ACTIVE') {
-      this.logger.warn(`Intento de login para usuario inactivo/suspendido: ${usernameOrEmail}`);
+      this.logger.warn(
+        `Intento de login para usuario inactivo/suspendido: ${usernameOrEmail}`,
+      );
       throw new UnauthorizedException('El usuario no se encuentra activo');
     }
 
-    // Retornamos el payload sin información sensible de contraseña
-    const { passwordHash, ...userPayload } = user;
-    return userPayload;
+    return {
+      id: user.id,
+      username: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    };
   }
 
   /**
-   * Emite un token JWT firmado tras validar credenciales
+   * Emite un token JWT firmado tras validar credenciales en BD
    */
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.username, loginDto.password);

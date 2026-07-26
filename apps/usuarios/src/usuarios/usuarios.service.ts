@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as bcrypt from 'bcryptjs';
 import { Usuario } from './entities/usuario.entity';
 
 @Injectable()
@@ -11,6 +12,28 @@ export class UsuariosService {
     @InjectRepository(Usuario)
     private readonly repo: Repository<Usuario>,
   ) {}
+
+  /**
+   * Valida credenciales contra la base de datos de Postgres (UsuariosBDD).
+   * Utiliza bcryptjs para verificar el hash salado.
+   */
+  async validateUserCredentials(usernameOrEmail: string, pass: string) {
+    const user = await this.repo.findOne({
+      where: [{ name: usernameOrEmail }, { email: usernameOrEmail }],
+    });
+
+    if (!user || !user.passwordHash) {
+      return null;
+    }
+
+    const isMatch = bcrypt.compareSync(pass, user.passwordHash);
+    if (!isMatch || user.status !== 'ACTIVE') {
+      return null;
+    }
+
+    const { passwordHash, ...result } = user;
+    return result;
+  }
 
   async processEvento(data: Record<string, any>): Promise<void> {
     this.logger.log('Procesando evento de usuario de forma asincrona...');
