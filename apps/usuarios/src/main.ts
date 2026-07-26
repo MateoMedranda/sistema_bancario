@@ -12,6 +12,17 @@ async function bootstrap() {
 
   app.connectMicroservice<MicroserviceOptions>(
     {
+      transport: Transport.TCP,
+      options: {
+        host: '0.0.0.0',
+        port: +(process.env.USUARIOS_PORT ?? 4004),
+      },
+    },
+    { inheritAppConfig: true },
+  );
+
+  app.connectMicroservice<MicroserviceOptions>(
+    {
       transport: Transport.REDIS,
       options: {
         host: process.env.REDIS_HOST ?? 'localhost',
@@ -40,6 +51,9 @@ async function bootstrap() {
 
   logger.log(
     `Microservicio Usuarios escuchando eventos Redis en ${process.env.REDIS_HOST ?? 'localhost'}:${process.env.REDIS_PORT ?? 6379}`,
+  );
+  logger.log(
+    `Microservicio Usuarios escuchando TCP en puerto ${process.env.USUARIOS_PORT ?? 4004}`,
   );
   logger.log('Microservicio Usuarios escuchando cola RabbitMQ auditoria_queue');
 }
