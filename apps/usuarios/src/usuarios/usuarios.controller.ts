@@ -29,4 +29,11 @@ export class UsuariosController {
     this.logger.log(`Datos de auditoría: ${JSON.stringify(data)}`);
     return this.usuariosService.processEvento(data);
   }
+
+  @EventPattern('transaccion-creada')
+  async handleTransaccionCreada(@Payload() data: Record<string, any>) {
+    this.logger.log('Usuarios: evento Redis recibido (transaccion-creada)');
+    this.logger.log(`Transaccion ${data.transaccionId} - ${data.type} - $${data.amount} - ${data.status}`);
+    return this.usuariosService.processEvento(data);
+  }
 }

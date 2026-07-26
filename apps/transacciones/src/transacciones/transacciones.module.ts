@@ -39,6 +39,18 @@ import { TransaccionesController } from './transacciones.controller';
           },
         }),
       },
+      {
+        name: 'NOTIFICACION_SERVICE',
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          transport: Transport.REDIS,
+          options: {
+            host: config.get<string>('REDIS_HOST', 'localhost'),
+            port: config.get<number>('REDIS_PORT', 6379),
+          },
+        }),
+      },
     ]),
   ],
   controllers: [TransaccionesController],
