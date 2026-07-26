@@ -1,0 +1,336 @@
+{
+  "info": {
+    "_postman_id": "c1a2b3c4-d5e6-7f8a-9b0c-1d2e3f4a5b6c",
+    "name": "Sistema Bancario - Tarea 3 (JWT, Bcrypt & Microservicios)",
+    "description": "Colección completa de endpoints del API Gateway (http://localhost:3000) para la Tarea 3 del Sistema Bancario Distribuido.\n\nContenido:\n- 1. Autenticación (Login con emisión de JWT y verificación de Bcrypt salado en UsuariosBDD)\n- 2. Transacciones (Comunicación TCP Gateway -> svc-transacciones -> gRPC svc-cuentas + Auditoría en RabbitMQ)\n- 3. Eventos Asíncronos (Comunicación Redis Gateway -> svc-usuarios sin bloqueo del emisor)\n- 4. Sistema (Health Check)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Autenticación (JWT & Bcrypt en UsuariosBDD)",
+      "item": [
+        {
+          "name": "Login - Cliente (emitir JWT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"cliente\",\n  \"password\": \"cliente123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Valida credenciales del usuario 'cliente' contra la base de datos UsuariosBDD en PostgreSQL verificando el hash Bcrypt con sal ($2b$10$...) y retorna un JWT firmado."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Admin (emitir JWT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Valida credenciales para el usuario 'admin'."
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Cajero (emitir JWT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"cajero\",\n  \"password\": \"cajero123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login - Auditor (emitir JWT)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"auditor\",\n  \"password\": \"auditor123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/auth/login",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Transacciones y Cuentas (TCP + gRPC + RabbitMQ)",
+      "item": [
+        {
+          "name": "Crear Depósito en Cuenta de Ahorros (+$100)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceAccountId\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"type\": \"DEPOSITO\",\n  \"amount\": 100,\n  \"refCode\": \"REF001\",\n  \"description\": \"Depósito de prueba Tarea 3\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/transacciones",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "transacciones"
+              ]
+            },
+            "description": "Envía comando síncrono por TCP desde el Gateway hacia svc-transacciones. Este se comunica por gRPC con svc-cuentas para actualizar el saldo y publica un evento en RabbitMQ."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Transferencia entre Cuentas ($50)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceAccountId\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"destinationAccountId\": \"b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22\",\n  \"type\": \"TRANSFERENCIA\",\n  \"amount\": 50,\n  \"refCode\": \"REF002\",\n  \"description\": \"Transferencia de ahorros a corriente\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/transacciones",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "transacciones"
+              ]
+            },
+            "description": "Ejecuta una transferencia descontando de la cuenta de ahorros (a0eebc99-...) y sumando a la cuenta corriente (b0eebc99-...)."
+          },
+          "response": []
+        },
+        {
+          "name": "Crear Retiro de Cuenta de Ahorros (-$20)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceAccountId\": \"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11\",\n  \"type\": \"RETIRO\",\n  \"amount\": 20,\n  \"refCode\": \"REF003\",\n  \"description\": \"Retiro en cajero automático\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/transacciones",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "transacciones"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Todas las Transacciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/transacciones",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "transacciones"
+              ]
+            },
+            "description": "Devuelve la lista completa de transacciones registradas en TransaccionesBDD."
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar Transacción por ID de Cuenta",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/transacciones/a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "transacciones",
+                "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"
+              ]
+            },
+            "description": "Consulta todas las transacciones asociadas a la cuenta principal del cliente en TransaccionesBDD."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Eventos Asíncronos (Redis -> UsuariosBDD)",
+      "item": [
+        {
+          "name": "Publicar Evento Asíncrono de Creación de Usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"create\",\n  \"name\": \"nuevo_usuario_redis\",\n  \"email\": \"redis@banco.com\",\n  \"identityId\": \"0999888777\",\n  \"role\": \"CLIENTE\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:3000/api/usuarios/evento",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "usuarios",
+                "evento"
+              ]
+            },
+            "description": "Publica un evento asíncrono en Redis (canal usuario.evento). El API Gateway responde inmediatamente sin bloquear al emisor y el microservicio svc-usuarios lo procesa en background persistiendo en UsuariosBDD."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Sistema & Monitoreo",
+      "item": [
+        {
+          "name": "Health Check (Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:3000/api/health",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "3000",
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Verifica el estado de salud del API Gateway."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
