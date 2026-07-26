@@ -22,6 +22,8 @@ export class TransaccionesService implements OnModuleInit {
     private readonly client: ClientGrpc,
     @Inject('AUDITORIA_SERVICE')
     private readonly auditoriaClient: ClientProxy,
+    @Inject('NOTIFICACION_SERVICE')
+    private readonly notificacionClient: ClientProxy,
   ) {}
 
   onModuleInit() {
@@ -81,6 +83,17 @@ export class TransaccionesService implements OnModuleInit {
     this.logger.log(`Transaccion ${saved.id} creada exitosamente`);
 
     this.auditoriaClient.emit('auditar_transaccion', {
+      transaccionId: saved.id,
+      type: dto.type,
+      sourceAccountId: dto.sourceAccountId,
+      destinationAccountId: dto.destinationAccountId,
+      amount: dto.amount,
+      status: saved.status,
+      createdAt: saved.createdAt,
+    });
+
+    this.logger.log('Transacciones -> Redis -> Usuarios (notificacion transaccion-creada)');
+    this.notificacionClient.emit('transaccion-creada', {
       transaccionId: saved.id,
       type: dto.type,
       sourceAccountId: dto.sourceAccountId,

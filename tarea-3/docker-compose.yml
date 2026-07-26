@@ -85,6 +85,7 @@ services:
     environment:
       DB_HOST: db
       REDIS_HOST: redis
+      REDIS_PORT: 6379
       SVC_CUENTAS_HOST: svc-cuentas
       CUENTAS_GRPC_PORT: 50052
       TRANSACCIONES_PORT: 4003
