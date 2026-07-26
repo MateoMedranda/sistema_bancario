@@ -1,0 +1,169 @@
+# =============================================================================
+#  docker-compose.yml  —  Tarea 3 (Arquitectura Completa y Listo para Usar)
+#  Sistema Bancario - Autenticación JWT + Hashes con Sal + gRPC + Redis + RabbitMQ
+#
+#  Levantar:   docker compose -f docker-compose.yml up -d --build
+#              o bien: docker compose up -d --build
+#  Verificar:  docker compose ps
+# =============================================================================
+services:
+
+  # ─── 1. Base de Datos Principal (PostgreSQL 16) ───
+  db:
+    env_file:
+      - ../.env
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rootroot}
+      POSTGRES_DB: ${DB_DATABASE_USUARIOS:-UsuariosBDD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_t3:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+
+  # ─── 2. Broker Redis (Eventos asíncronos en tiempo real) ───
+  redis:
+    image: redis:7-alpine
+    container_name: redis_broker_t3
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    volumes:
+      - redisdata_t3:/data
+
+  # ─── 3. Broker RabbitMQ (Auditoría transaccional desacoplada) ───
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rabbitmq_broker_t3
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # ─── 4. Interfaz Gráfica para Monitorear Redis ───
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: redis_insight_ui_t3
+    environment:
+      RI_APP_PORT: 5540
+      RI_APP_HOST: 0.0.0.0
+      RI_REDIS_HOST: redis
+      RI_REDIS_PORT: 6379
+      RI_REDIS_ALIAS: redis_broker_t3
+    ports:
+      - "5540:5540"
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # ─── 5. Microservicio A: Transacciones (TCP: 4003, Cliente gRPC: 50052, RabbitMQ) ───
+  svc-transacciones:
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/transacciones/Dockerfile
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+      SVC_CUENTAS_HOST: svc-cuentas
+      CUENTAS_GRPC_PORT: 50052
+      TRANSACCIONES_PORT: 4003
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── 6. Microservicio B: Cuentas (Servidor gRPC: 50052 + Seeder Automático CuentasBDD) ───
+  svc-cuentas:
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/cuentas/Dockerfile
+    environment:
+      DB_HOST: db
+      CUENTAS_GRPC_PORT: 50052
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── 7. Microservicio C: Usuarios (TCP: 4004 + Seeder Automático UsuariosBDD con Bcrypt) ───
+  svc-usuarios:
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/usuarios/Dockerfile
+    environment:
+      DB_HOST: db
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      RABBITMQ_URL: amqp://rabbitmq:5672
+      USUARIOS_PORT: 4004
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ─── 8. API Gateway (Entrada HTTP Puerto 3000 -> Orquestador JWT + TCP + Redis) ───
+  gateway:
+    env_file:
+      - ../.env
+    build:
+      context: ..
+      dockerfile: apps/sistema_bancario/Dockerfile
+    environment:
+      PORT: 3000
+      SVC_TRANSACCIONES_HOST: svc-transacciones
+      SVC_TRANSACCIONES_PORT: 4003
+      SVC_USUARIOS_HOST: svc-usuarios
+      SVC_USUARIOS_PORT: 4004
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-banco_secreto_super_seguro_2026}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-3600}
+      SENTRY_DSN: ${SENTRY_DSN:-}
+    ports:
+      - "3000:3000"
+    depends_on:
+      svc-transacciones:
+        condition: service_started
+      svc-usuarios:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata_t3:
+  redisdata_t3:
