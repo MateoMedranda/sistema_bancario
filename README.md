@@ -45,7 +45,7 @@ curl http://localhost:3000/api/health
 
 ## 🏗️ Arquitectura
 ✍️ Diagrama de arquitectura
-![Diagrama de Arquitectura de Microservicios](docs/Arquitectura_V4.png)
+![Diagrama de Arquitectura de Microservicios](docs/arquitectura_final.png)
 
 ## 🧭 Metodología
 - **Kanban:** Gestionamos las tareas usando GitHub Projects mediante un flujo de estados (Backlog, Por Hacer, En Progreso, En Revisión, Hecho) para hacer trazable el progreso.
@@ -177,7 +177,22 @@ La llamada a `validateCuenta` en el servicio de Transacciones se encapsuló con 
 
 ## 🔵 Avance 3 — Seguridad, observabilidad e integración (FINAL) · `tag v3-final`
 ### 🔐 Autenticación y autorización
-✍️ <<Login que emite JWT; Guard que protege rutas. Evidencia: 200 con token, 401 sin token (y 403 por rol si aplica).>>
+✍️ Login que emite JWT; Guard que protege rutas. Evidencia: 200 con token, 401 sin token y 403 para los roles de CLIENTE, AUDITOR, ADMIN Y CAJERO.
+
+Dentro de la carpeta tarea-3 se encuentra un script para importar la colección en postman, a continuación se aprecia la colección y el endpoint que permite generar el token, el cuál será guardado como variable para de forma automática usarse en las otras peticiones.
+![Colección de postman](docs/Coleccion_Postman.png)
+
+Endpoint para generación de token (Login)
+![Petición para obtener el token](docs/token_generado.png)
+
+Endpoint con petición autorizada y rol admitido
+![Petición 200](docs/request_200.png)
+
+Endpoint con petición no autorizada
+![Petición 401](docs/request_401.png)
+
+Endpoint con petición de rol no admitido
+![Petición 403](docs/request_403.png)
 
 ### 📊 Observabilidad (Sentry)
 ✍️ <<Qué se registra; captura del error en el panel de Sentry.>>
@@ -186,12 +201,12 @@ La llamada a `validateCuenta` en el servicio de Transacciones se encapsuló con 
 ✍️ <<Operación que atraviesa varios microservicios/transportes desde el Gateway.>>
 
 ### 🏗️ Diagrama final
-✍️ <<Sistema integrado>>
-
+✍️ Sistema integrado, en el cual se evidencia un flujo constante de comunicación y seguridad de software usando bycript con salt para contraseñas, evitando que 2 contraseñas tengan el mismo hash.
+![Arquitectura Final](docs/arquitectura_final.png)
 ---
 
 ## 🎤 Defensa
 ✍️ <<Enlace a diapositivas + guion. Runbook de la demo (levantar → login → ruta protegida → operación integrada → error en Sentry). Preguntas frecuentes preparadas.>>
 
 ## 🏷️ Tags de entrega
-- `v1-avance1` — <<fecha>> · `v2-avance2` — <<fecha>> · `v3-final` — <<fecha>>
+- `v1-avance1` — 16-07-2026 · `v2-avance2` — 21-07-2026 · `v3-final` — 26-07-2026

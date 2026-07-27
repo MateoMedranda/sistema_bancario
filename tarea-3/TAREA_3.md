@@ -68,10 +68,10 @@ Sugerido **8–10 diapositivas + demo en vivo (10–12 min)**. Debe existir una 
 - ¿Qué patrones de diseño usa NestJS y cuáles agregaron ustedes?
 
 ### ✅ Definición de Terminado
-- [ ] **JWT** funcionando (login emite token, se valida en las rutas).
-- [ ] **Guard** protegiendo rutas (401 sin token; 403 sin permiso si usan roles).
+- [✅] **JWT** funcionando (login emite token, se valida en las rutas).
+- [✅] **Guard** protegiendo rutas (401 sin token; 403 sin permiso si usan roles).
 - [ ] **Sentry** capturando errores (evidencia en el panel).
-- [ ] Sistema **integrado** (varios microservicios/transportes en una operación).
+- [✅] Sistema **integrado** (varios microservicios/transportes en una operación).
 - [ ] README **final** consolidado + sección Defensa + **tag `v3-final`**.
 - [ ] Exposición ensayada con demo en vivo.
 
