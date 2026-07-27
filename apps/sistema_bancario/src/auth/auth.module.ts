@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { TokenBlacklistService } from './token-blacklist.service';
 
 @Module({
   imports: [
@@ -37,7 +38,7 @@ import { RolesGuard } from './guards/roles.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, RolesGuard],
-  exports: [AuthService, JwtModule, JwtAuthGuard, RolesGuard],
+  providers: [AuthService, JwtAuthGuard, RolesGuard, TokenBlacklistService],
+  exports: [AuthService, JwtModule, JwtAuthGuard, RolesGuard, TokenBlacklistService],
 })
 export class AuthModule {}

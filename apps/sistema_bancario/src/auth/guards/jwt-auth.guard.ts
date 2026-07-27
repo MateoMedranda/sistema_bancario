@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
+import { TokenBlacklistService } from '../token-blacklist.service';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -16,6 +17,7 @@ export class JwtAuthGuard implements CanActivate {
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly reflector: Reflector,
+    private readonly blacklistService: TokenBlacklistService, // Inyección del servicio
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,8 +46,21 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret,
       });
+
+      // Verificación en Redis antes de dar acceso
+      if (payload.jti) {
+        const isRevoked = await this.blacklistService.isRevoked(payload.jti);
+        if (isRevoked) {
+          throw new UnauthorizedException('El token ha sido revocado (sesión cerrada)');
+        }
+      }
+
       request['user'] = payload;
-    } catch {
+      request['token'] = token; // Guardamos el token en el request para uso en el controller
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException('Token expirado o inválido');
     }
 

@@ -9,6 +9,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import * as crypto from 'crypto';
 import { LoginDto } from './dto/login.dto';
+import { TokenBlacklistService } from './token-blacklist.service';
 
 export interface UserPayload {
   id: string;
@@ -26,6 +27,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @Inject('USUARIOS_SERVICE')
     private readonly usuariosClient: ClientProxy,
+    private readonly blacklistService: TokenBlacklistService,
   ) {}
 
   /**
@@ -111,5 +113,23 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  /**
+   * Revoca un token activo guardando su jti en Redis con TTL equivalente al tiempo restante de vida.
+   */
+  async logout(payload: any) {
+    if (!payload || !payload.jti || !payload.exp) {
+      return { message: 'Logout procesado' };
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const ttlRemaining = payload.exp - now;
+
+    if (ttlRemaining > 0) {
+      await this.blacklistService.revokeToken(payload.jti, ttlRemaining);
+    }
+
+    return { message: 'Sesión cerrada exitosamente' };
   }
 }
