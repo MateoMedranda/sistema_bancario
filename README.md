@@ -44,8 +44,12 @@ curl http://localhost:3000/api/health
 ```
 
 ## 🏗️ Arquitectura
-✍️ Diagrama de arquitectura
-![Diagrama de Arquitectura de Microservicios](docs/arquitectura_final.png)
+El sistema adopta una arquitectura basada en **Microservicios Híbridos (Síncronos y Asíncronos)** sobre **NestJS 10**, orquestada a través de un **API Gateway** centralizado que administra la seguridad (JWT / Bcrypt / RBAC), el enrutamiento multiprotocolo (**HTTP REST**, **gRPC sobre HTTP/2** y **TCP/RPC**) y la mensajería asíncrona orientada a eventos (**Redis Pub/Sub** y **RabbitMQ AMQP**):
+
+- <details><summary>🏛️ Ver Diagrama de Arquitectura del Sistema Bancario</summary>
+  <br/>
+  <img src="docs/arquitectura_final.png" alt="Diagrama de Arquitectura de Microservicios" width="850"/>
+  </details>
 
 ## 🧭 Metodología
 - **Kanban:** Gestionamos las tareas usando GitHub Projects mediante un flujo de estados (Backlog, Por Hacer, En Progreso, En Revisión, Hecho) para hacer trazable el progreso.
@@ -161,48 +165,77 @@ La llamada a `validateCuenta` en el servicio de Transacciones se encapsuló con 
 
 ### 📸 Evidencias de Avance 2
 
-- Health del Gateway:
-  ![Health Gateway](docs/avance2_health_gateway.png)
+- <details><summary>💓 Ver Health Check del API Gateway</summary>
+  <br/>
+  <img src="docs/avance2_health_gateway.png" alt="Health Gateway" width="750"/>
+  </details>
 
-- Transacción válida vía HTTP al Gateway:
-  ![Transacción válida](docs/avance2_transaccion_ok.png)
+- <details><summary>💸 Ver Transacción válida vía HTTP al Gateway</summary>
+  <br/>
+  <img src="docs/avance2_transaccion_ok.png" alt="Transacción válida" width="750"/>
+  </details>
 
-- Error controlado cuando la cuenta no existe:
-  ![Error controlado](docs/avance2_transaccion_error_controlado.png)
+- <details><summary>🛡️ Ver Error controlado cuando la cuenta no existe (404 Not Found)</summary>
+  <br/>
+  <img src="docs/avance2_transaccion_error_controlado.png" alt="Error controlado" width="750"/>
+  </details>
 
-- Logs del consumidor RabbitMQ en Usuarios:
-  ![RabbitMQ logs](docs/avance2_rabbitmq_logs.png)
+- <details><summary>🐰 Ver Logs del consumidor RabbitMQ en Usuarios</summary>
+  <br/>
+  <img src="docs/avance2_rabbitmq_logs.png" alt="RabbitMQ logs" width="750"/>
+  </details>
 
 ---
 
 ## 🔵 Avance 3 — Seguridad, observabilidad e integración (FINAL) · `tag v3-final`
-### 🔐 Autenticación y autorización
-✍️ Login que emite JWT; Guard que protege rutas. Evidencia: 200 con token, 401 sin token y 403 para los roles de CLIENTE, AUDITOR, ADMIN Y CAJERO.
 
-Dentro de la carpeta tarea-3 se encuentra un script para importar la colección en postman, a continuación se aprecia la colección y el endpoint que permite generar el token, el cuál será guardado como variable para de forma automática usarse en las otras peticiones.
-![Colección de postman](docs/Coleccion_Postman.png)
+### 🔐 Autenticación, Encriptación y Autorización (RBAC)
+Se implementó una infraestructura de seguridad sin estado basada en **JSON Web Tokens (JWT RFC 7519)** con firma criptográfica HMAC-SHA256 (`HS256`) y un tiempo de vigencia controlado de **3600 segundos (1 hora)**. Para el almacenamiento seguro de credenciales en la base de datos (`UsuariosBDD`), se implementa el algoritmo **Bcrypt** con generación automática de un *Salt* de **10 rondas de entropía** (`bcrypt.genSalt(10)`), garantizando que contraseñas idénticas produzcan hashes completamente diferentes y neutralizando ataques de diccionario o tablas arcoíris.
 
-Endpoint para generación de token (Login)
-![Petición para obtener el token](docs/token_generado.png)
+El **API Gateway** centraliza el control de acceso y autorización sobre las rutas mediante dos Guards encadenados:
+1. **`JwtAuthGuard`**: Intercepta la petición HTTP, valida el token Bearer en el encabezado `Authorization`, verifica la integridad de la firma y la vigencia temporal, e inyecta la identidad del usuario (`sub`, `username`, `role`) en el contexto de ejecución.
+2. **`RolesGuard`**: Evalúa la política de Control de Acceso Basado en Roles (**RBAC**), contrastando los roles requeridos en los decoradores (`@Roles`) contra el rol asignado al token (`ADMIN`, `CLIENTE`, `CAJERO`, `AUDITOR`), permitiendo el paso (`200 OK`) o rechazando la petición (`403 Forbidden`).
 
-Endpoint con petición autorizada y rol admitido
-![Petición 200](docs/request_200.png)
+En el directorio `tarea-3/` se adjunta la colección oficial de Postman (`Sistema_Bancario_Tarea3.postman_collection.json`), equipada con scripts automáticos que capturan el `access_token` generado tras el Login y lo asignan dinámicamente a la variable `{{jwt_token}}` para autenticar sin intervención manual el resto de peticiones:
 
-Endpoint con petición no autorizada
-![Petición 401](docs/request_401.png)
+- <details><summary>📦 Ver Colección de Postman y configuración automática de variables</summary>
+  <br/>
+  <img src="docs/Coleccion_Postman.png" alt="Colección de postman" width="750"/>
+  </details>
 
-Endpoint con petición de rol no admitido
-![Petición 403](docs/request_403.png)
+- <details><summary>🔑 Ver Petición para generación de token JWT — POST /api/auth/login (HTTP 200 OK)</summary>
+  <br/>
+  <img src="docs/token_generado.png" alt="Petición para obtener el token" width="750"/>
+  </details>
 
-### 📊 Observabilidad (Sentry)
-✍️ <<Qué se registra; captura del error en el panel de Sentry.>>
+- <details><summary>✅ Ver Petición autorizada con rol admitido en endpoint protegido (HTTP 200 OK)</summary>
+  <br/>
+  <img src="docs/request_200.png" alt="Petición 200" width="750"/>
+  </details>
 
-### 🔗 Integración final
-✍️ <<Operación que atraviesa varios microservicios/transportes desde el Gateway.>>
+- <details><summary>🚫 Ver Petición sin token de autenticación o token inválido (HTTP 401 Unauthorized)</summary>
+  <br/>
+  <img src="docs/request_401.png" alt="Petición 401" width="750"/>
+  </details>
 
-### 🏗️ Diagrama final
-✍️ Sistema integrado, en el cual se evidencia un flujo constante de comunicación y seguridad de software usando bycript con salt para contraseñas, evitando que 2 contraseñas tengan el mismo hash.
-![Arquitectura Final](docs/arquitectura_final.png)
+- <details><summary>🛑 Ver Petición con rol no admitido por políticas RBAC (HTTP 403 Forbidden)</summary>
+  <br/>
+  <img src="docs/request_403.png" alt="Petición 403" width="750"/>
+  </details>
+
+### 📊 Observabilidad Integral (Sentry)
+Se integró el SDK oficial de **Sentry** (`@sentry/node` y `@sentry/profiling-node`) de forma distribuida en el API Gateway y en cada microservicio (`svc-usuarios`, `svc-transacciones`, `svc-cuentas`). El sistema captura automáticamente trazas de pila (*Stack Traces*) completas, latencias de peticiones gRPC/TCP/HTTP y excepciones no controladas, vinculando el contexto del error al microservicio de origen mediante la configuración centralizada de la variable `SENTRY_DSN`.
+
+### 🔗 Integración Final del Sistema
+La operación integral atraviesa de forma cohesiva los diversos protocolos del ecosistema: una solicitud HTTP/REST externa entra por el **API Gateway**, se autentica mediante JWT/Bcrypt y se enruta de forma síncrona vía **gRPC (HTTP/2)** al microservicio de **Transacciones**, el cual valida saldos en tiempo real con el servicio de **Cuentas**, consolida los registros ACID en **PostgreSQL** y emite eventos de dominio asíncronos en **RabbitMQ** para auditoría y en **Redis Pub/Sub** para notificaciones.
+
+### 🏗️ Diagrama de Arquitectura Final
+El siguiente diagrama presenta la arquitectura integral del **Sistema Bancario Distribuido**, ilustrando la interacción multiprotocolo entre el API Gateway, la capa de autenticación JWT y encriptación Bcrypt con Salt, los microservicios síncronos sobre **gRPC** y **TCP/RPC**, la mensajería asíncrona orientada a eventos con **Redis** y **RabbitMQ**, el aislamiento transaccional ACID en **PostgreSQL** (`Database-per-Service`) y el monitoreo centralizado con **Sentry**:
+
+- <details><summary>🏛️ Ver Diagrama de Arquitectura Integral del Sistema Bancario</summary>
+  <br/>
+  <img src="docs/arquitectura_final.png" alt="Arquitectura Final" width="850"/>
+  </details>
 ---
 
 ## 🎤 Defensa
