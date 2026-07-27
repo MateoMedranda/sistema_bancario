@@ -8,6 +8,7 @@ import { CreateTransaccionDto } from './dto/create-transaccion.dto';
 
 interface CuentasServiceGrpc {
   validateCuenta(data: { id: string }): Observable<any>;
+  getAvailableBalance(data: { id: string }): Observable<any>;
 }
 
 @Injectable()

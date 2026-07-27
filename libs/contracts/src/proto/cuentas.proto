@@ -5,6 +5,7 @@ service CuentasService {
   rpc ValidateCuenta (CuentaRequest) returns (CuentaResponse);
   rpc FindCuenta (CuentaRequest) returns (CuentaResponse);
   rpc UpdateBalance (UpdateBalanceRequest) returns (CuentaResponse);
+  rpc GetAvailableBalance (CuentaRequest) returns (BalanceResponse);
 }
 
 message CuentaRequest {
@@ -24,3 +25,11 @@ message CuentaResponse {
   double balance = 5;
   string status = 6;
 }
+
+message BalanceResponse {
+  string id = 1;
+  string accountNumber = 2;
+  double balance = 3;
+  string status = 6;
+}
+

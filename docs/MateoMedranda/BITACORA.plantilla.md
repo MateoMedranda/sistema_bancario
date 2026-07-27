@@ -26,6 +26,12 @@
 
 *Tres a cinco frases. Qué hace ahora el sistema que antes no hacía. Sin copiar el enunciado.*
 
+**FASE 1**
+*Primero hice un análisis del sistema actual, con su arquitectura, percatandome de que el punto de modificación debe ser agregar un nuevo endpoint que me permita obtener el balance de las cuentas, un servicio que no existe actualmente y que si se quisiera implementar se debería duplicar los datos de la tabla cuentas en la tabla de transacciones, o en la bdd_transacciones, algo que no permitiría tener una verdad única, por lo que el punto debe ser comunicar el svc-transacciones con el svc-cuentas y de esa forma obtener la verdad única del balance mediante un salto síncrono con contrato*
+
+**FASE 2**
+*Fue necesario definir una nueva estructura de respuesta, para lo cual una petición de balance debería poder devolver el id de la cuenta bancaría, el número de cuenta, el estatus y también el balance que viene a ser el dato principal, para lo cual dentro de [libs/contracts/cuentas.proto](../../libs/contracts/src/proto/cuentas.proto) agregué la nueva estructura BalanceResponse y también el nuevo procedimiento GetAvailableBalance, por último dentro de esta fase se agregó el método a la interfaz CuentasServiceGrpc en  [apps/transacciones/src/transacciones/transacciones.service.ts](../../apps/transacciones/src/transacciones/transacciones.service.ts) el cual va a permitir usar dentro del servicio el contrato*
+
 
 
 ---
