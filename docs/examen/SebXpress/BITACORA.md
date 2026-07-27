@@ -10,7 +10,7 @@
 | **Actividad asignada** | Actividad A — Revocación de sesión JWT (logout real) |
 | **Rama** | `exam/SebXpress` |
 | **Tag** | `examen-SebXpress` |
-| **Pull Request** | *(enlace al Pull Request en GitHub)* |
+| **Pull Request** | https://github.com/MateoMedranda/sistema_bancario/pull/69 |
 | **Tarjeta Kanban** | *(enlace a la tarjeta Kanban)* |
 | **¿Hiciste el Paso 0?** | No — la base de JWT ya existía en package.json (@nestjs/jwt) y en el módulo de autenticación |
 
