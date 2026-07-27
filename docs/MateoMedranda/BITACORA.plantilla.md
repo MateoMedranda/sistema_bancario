@@ -32,6 +32,10 @@
 **FASE 2**
 *Fue necesario definir una nueva estructura de respuesta, para lo cual una petición de balance debería poder devolver el id de la cuenta bancaría, el número de cuenta, el estatus y también el balance que viene a ser el dato principal, para lo cual dentro de [libs/contracts/cuentas.proto](../../libs/contracts/src/proto/cuentas.proto) agregué la nueva estructura BalanceResponse y también el nuevo procedimiento GetAvailableBalance, por último dentro de esta fase se agregó el método a la interfaz CuentasServiceGrpc en  [apps/transacciones/src/transacciones/transacciones.service.ts](../../apps/transacciones/src/transacciones/transacciones.service.ts) el cual va a permitir usar dentro del servicio el contrato*
 
+**FASE 3**
+*Para esta fase fue necesario definir un poco de lógica de negocio y validaciones, implementando el método GetAvailableBalance que fue definido en la interfaz en la fase anterior, en el mismo método implementado, coloqué algunas validaciones, como la estructura del id enviado dentro de la petición, validación sobre un id vacío enviado y validación de una búsqueda con el id enviado pero que no existe en los registros de la BDD, para esto use códigos 400 para bd request, y 404 para not found en [apps/cuentas/src/cuentas/cuentas.service.ts](../../apps/cuentas/src/cuentas/cuentas.service.ts), también hice una exposición del endpoint gRPC registrando la acción del nuevo controlador asociado al nuevo servicio en [apps/cuentas/src/cuentas/cuentas.controller.ts](../../apps/cuentas/src/cuentas/cuentas.controller.ts)*
+
+
 
 
 ---
