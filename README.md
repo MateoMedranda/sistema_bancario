@@ -239,7 +239,107 @@ El siguiente diagrama presenta la arquitectura integral del **Sistema Bancario D
 ---
 
 ## 🎤 Defensa
-✍️ <<Enlace a diapositivas + guion. Runbook de la demo (levantar → login → ruta protegida → operación integrada → error en Sentry). Preguntas frecuentes preparadas.>>
+
+### 📊 Diapositivas
+[EMM Bank System — Presentación Final](https://canva.link/cnfk83ou5d5a5w3)
+
+### 🎬 Runbook de la Demo (10-12 min)
+
+1. **Levantar el sistema:**
+   ```bash
+   cd tarea-3 && docker compose up -d --build
+   ```
+
+2. **Verificar servicios (8 deben estar corriendo):**
+   ```bash
+   docker compose ps
+   ```
+
+3. **Login → obtener JWT:**
+   ```
+   POST http://localhost:3000/api/auth/login
+   Body: { "username": "admin", "password": "admin123" }
+   → Copiar el access_token
+   ```
+
+4. **Ruta protegida SIN token → 401:**
+   ```
+   GET http://localhost:3000/api/transacciones
+   → 401 Unauthorized (JwtAuthGuard rechaza)
+   ```
+
+5. **Ruta protegida CON token → 200:**
+   ```
+   GET http://localhost:3000/api/transacciones
+   Header: Authorization: Bearer <token>
+   → 200 OK
+   ```
+
+6. **Crear transferencia (operación integrada) → 201:**
+   ```
+   POST http://localhost:3000/api/transacciones
+   Header: Authorization: Bearer <token>
+   Body: {
+     "sourceAccountId": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+     "destinationAccountId": "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380b22",
+     "type": "TRANSFERENCIA",
+     "amount": 25,
+     "refCode": "DEMO-001"
+   }
+   → 201 Created
+   ```
+
+7. **Mostrar logs de Transacciones (4 transports en acción):**
+   ```bash
+   docker logs svc-transacciones --tail 10
+   ```
+   - TCP: "recibe peticion TCP del Gateway"
+   - gRPC: "Transacciones -> gRPC -> Cuentas (validar cuenta)"
+   - RabbitMQ: "conectado a RMQ broker"
+   - Redis: "Transacciones -> Usuarios (notificacion transaccion-creada)"
+
+8. **Mostrar logs de Usuarios (recibe eventos async):**
+   ```bash
+   docker logs svc-usuarios --tail 10
+   ```
+   - Redis: "evento Redis recibido (transaccion-creada)"
+   - RabbitMQ: "evento RabbitMQ recibido en auditoria_queue"
+
+9. **Health check → 200:**
+   ```
+   GET http://localhost:3000/api/health
+   → { "status": "ok", "service": "API Gateway" }
+   ```
+
+10. **Mostrar RabbitMQ Management UI:**
+    Abrir http://localhost:15672 (guest/guest)
+    → Cola auditoria_queue visible
+
+### ❓ Preguntas Frecuentes del Jurado (preparadas)
+
+**¿Qué información viaja dentro de un JWT y cómo se valida?**
+El JWT contiene: sub (ID del usuario), username, email, role, iss (emisor), aud (audiencia), jti (ID único), iat (fecha emisión), exp (expiración). Se valida verificando la firma HMAC-SHA256 con el secret. Si la firma no coincide o el token expiró → UnauthorizedException (401).
+
+**¿Qué hace un Guard en NestJS y en qué se diferencia de un middleware?**
+Un Guard determina si una petición debe ser procesada ANTES de llegar al controlador. Se ejecuta después del middleware y antes del interceptor. A diferencia del middleware (que puede modificar la petición), el Guard solo retorna true/false. En nuestro proyecto: JwtAuthGuard verifica el token y RolesGuard verifica el rol.
+
+**¿Cuál es la diferencia entre autenticación y autorización?**
+Autenticación: verificar QUIÉN eres (login + JWT). Autorización: verificar QUÉ puedes hacer (roles y permisos). El login autentica (emite JWT), los Guards autorizan (verifican el rol contra @Roles()).
+
+**¿Por qué eligieron gRPC para Transacciones→Cuentas y no TCP o eventos?**
+Porque la validación de cuentas requiere respuesta inmediata (síncrono) y un contrato formal con tipos definidos. gRPC proporciona un .proto que documenta métodos, tipos y errores. TCP no tiene contrato; los eventos son async y no esperan respuesta.
+
+**¿En qué se diferencian los 4 transportes?**
+- TCP: síncrono, req-res, sin contrato. Para cadenas con respuesta inmediata.
+- gRPC: síncrono, RPC con contrato .proto. Para servicios con tipos documentados.
+- Redis PUB/SUB: asíncrono, fire-and-forget. Para eventos de baja latencia que pueden perderse.
+- RabbitMQ: asíncrono, cola persistente. Para mensajes que NO pueden perderse (auditoría).
+
+**¿Para qué sirve Sentry y qué registran ahí?**
+Sentry captura errores no manejados en el Gateway y microservicios. Registra: tipo de error, stack trace, endpoint, servicio afectado, timestamp y contexto personalizado. Permite monitoreo en tiempo real y alertas.
+
+**¿Qué patrones de diseño usa NestJS y cuáles agregaron ustedes?**
+NestJS usa: Controllers, Services, Modules, Guards, Interceptors, Pipes, Filters. Nosotros agregamos: API Gateway Pattern, Publisher/Subscriber (Redis, RabbitMQ), Database-per-Service, Exception Filters centralizados, Guards globales con decoradores personalizados (@Public, @Roles).
 
 ## 🏷️ Tags de entrega
 - `v1-avance1` — 16-07-2026 · `v2-avance2` — 21-07-2026 · `v3-final` — 26-07-2026
