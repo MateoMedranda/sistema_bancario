@@ -359,3 +359,13 @@ NestJS usa: Controllers, Services, Modules, Guards, Interceptors, Pipes, Filters
 
 ## 🏷️ Tags de entrega
 - `v1-avance1` — 16-07-2026 · `v2-avance2` — 21-07-2026 · `v3-final` — 26-07-2026
+
+### Examen final — Erick Obando
+
+**Actividad C: Consumidor asíncrono idempotente**
+
+El microservicio Usuarios ahora consume eventos `transaccion-creada` de forma idempotente. Si el mismo evento llega dos veces (reentrega de Redis), el consumidor detecta el `eventId` duplicado y lo descarta sin crear un registro repetido. Si el evento es nuevo, se persiste en la tabla `AuditLog`.
+
+- **Rama:** `exam/Tenkenoz`
+- **Tag:** `examen-Tenkenoz`
+- **Bitácora:** [docs/examen/Tenkenoz/BITACORA.md](docs/examen/Tenkenoz/BITACORA.md)
