@@ -25,4 +25,10 @@ export class CuentasController {
     this.logger.log(`Cuentas: update-balance(${data.id}, ${data.amount}) via gRPC`);
     return this.cuentasService.updateBalance(data.id, data.amount);
   }
+
+  @GrpcMethod('CuentasService', 'GetAvailableBalance')
+  async getAvailableBalance(data: { id: string }) {
+    this.logger.log(`Cuentas: get-available-balance(${data.id}) via gRPC`);
+    return this.cuentasService.getAvailableBalance(data.id);
+  }
 }

@@ -37,6 +37,13 @@ export class AppService {
     );
   }
 
+  async getCuentaBalance(id: string) {
+    this.logger.log(`Gateway -> TCP -> Transacciones (getCuentaBalance: ${id})`);
+    return firstValueFrom(
+      this.transaccionesClient.send('get-cuenta-balance', { id }),
+    );
+  }
+
   // ─── Camino ASINCRONO (Redis events, emisor no bloquea) ───
 
   publishUsuarioEvento(data: Record<string, any>) {

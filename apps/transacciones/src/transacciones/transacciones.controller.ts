@@ -26,4 +26,10 @@ export class TransaccionesController {
     this.logger.log(`Transacciones: findOne(${data.id}) via TCP`);
     return this.transaccionesService.findOne(data.id);
   }
+
+  @MessagePattern('get-cuenta-balance')
+  async getCuentaBalance(data: { id: string }) {
+    this.logger.log(`Transacciones: getCuentaBalance(${data.id}) via TCP`);
+    return this.transaccionesService.getCuentaBalance(data.id);
+  }
 }

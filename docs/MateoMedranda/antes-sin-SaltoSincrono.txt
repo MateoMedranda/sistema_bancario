@@ -1,0 +1,13 @@
+Búsqueda del método GetAvailableBalance en el contrato antes de la implementación:
+No se encontraron coincidencias para "GetAvailableBalance" en cuentas.proto.
+
+Petición HTTP realizada al API Gateway en http://localhost:3000/api/cuentas/d3b07384-d113-49cd-a5d6-8ee3c2e171b3/balance:
+Response:
+{
+  "statusCode": 404,
+  "timestamp": "2026-07-27T12:52:11.363Z",
+  "path": "/api/cuentas/d3b07384-d113-49cd-a5d6-8ee3c2e171b3/balance",
+  "method": "GET",
+  "error": "Microservice Error",
+  "message": "Cannot GET /api/cuentas/d3b07384-d113-49cd-a5d6-8ee3c2e171b3/balance"
+}

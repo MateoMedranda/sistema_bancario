@@ -56,4 +56,39 @@ export class CuentasService {
     cuenta.balance = Number(cuenta.balance.toFixed(2));
     return this.repo.save(cuenta);
   }
+
+  async getAvailableBalance(id: string) {
+    if (!id || id.trim() === '') {
+      throw new RpcException({
+        statusCode: 400,
+        message: 'El ID de la cuenta no puede estar vacío',
+        error: 'Bad Request',
+      });
+    }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(id)) {
+      throw new RpcException({
+        statusCode: 400,
+        message: 'El ID de la cuenta debe ser un UUID válido',
+        error: 'Bad Request',
+      });
+    }
+
+    const cuenta = await this.repo.findOneBy({ id });
+    if (!cuenta) {
+      throw new RpcException({
+        statusCode: 404,
+        message: `Cuenta con ID ${id} no encontrada`,
+        error: 'Not Found',
+      });
+    }
+
+    return {
+      id: cuenta.id,
+      accountNumber: cuenta.accountNumber,
+      balance: Number(cuenta.balance),
+      status: cuenta.status,
+    };
+  }
 }

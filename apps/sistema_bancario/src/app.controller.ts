@@ -43,6 +43,12 @@ export class AppController {
     return this.appService.findTransaccion(id);
   }
 
+  @Roles('CLIENTE', 'ADMIN', 'AUDITOR', 'CAJERO')
+  @Get('cuentas/:id/balance')
+  getCuentaBalance(@Param('id') id: string) {
+    return this.appService.getCuentaBalance(id);
+  }
+
   // ─── Camino ASINCRONO (Redis: Gateway -> Usuarios, emisor no bloquea) ───
 
   @Roles('ADMIN')
