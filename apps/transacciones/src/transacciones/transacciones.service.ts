@@ -141,22 +141,36 @@ export class TransaccionesService implements OnModuleInit {
       this.logger.error(`Error consultando saldo de la cuenta ${id} vía gRPC: ${errorMsg}`);
       
       if (error && typeof error === 'object') {
-        const details = (error as any).details ?? (error as any).message;
+        const details = (error as any).details ?? (error as any).message ?? errorMsg;
         const code = (error as any).code;
         const statusCode = (error as any).statusCode ?? (error as any).status;
 
-        if (code === 5 || code === '5' || statusCode === 404 || (error as any).error === 'Not Found') {
+        if (
+          code === 5 ||
+          code === '5' ||
+          statusCode === 404 ||
+          String(details).includes('no encontrada') ||
+          String(details).includes('Not Found') ||
+          String(details).includes('no existe')
+        ) {
           throw new RpcException({
             statusCode: 404,
-            message: details || `Cuenta con ID ${id} no encontrada`,
+            message: String(details).replace(/^\d+\s+UNKNOWN:\s*/, '') || `Cuenta con ID ${id} no encontrada`,
             error: 'Not Found',
           });
         }
 
-        if (code === 3 || code === '3' || statusCode === 400 || (error as any).error === 'Bad Request') {
+        if (
+          code === 3 ||
+          code === '3' ||
+          statusCode === 400 ||
+          String(details).includes('UUID') ||
+          String(details).includes('inválido') ||
+          String(details).includes('vacío')
+        ) {
           throw new RpcException({
             statusCode: 400,
-            message: details || 'El ID de la cuenta tiene un formato inválido',
+            message: String(details).replace(/^\d+\s+UNKNOWN:\s*/, '') || 'El ID de la cuenta tiene un formato inválido',
             error: 'Bad Request',
           });
         }
