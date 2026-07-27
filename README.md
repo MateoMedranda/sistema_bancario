@@ -369,3 +369,21 @@ El microservicio Usuarios ahora consume eventos `transaccion-creada` de forma id
 - **Rama:** `exam/Tenkenoz`
 - **Tag:** `examen-Tenkenoz`
 - **Bitácora:** [docs/examen/Tenkenoz/BITACORA.md](docs/examen/Tenkenoz/BITACORA.md)
+
+#### Evidencia
+
+**Antes:**
+
+| Login | Evento duplicado | Error en BD |
+|---|---|---|
+| ![Login](docs/examen/Tenkenoz/antes-login.png) | ![Evento duplicado](docs/examen/Tenkenoz/antes-evento-enviado.png) | ![Duplicate key](docs/examen/Tenkenoz/antes-duplicate-key.png) |
+
+**Después:**
+
+| Evento con idempotencia | Logs: procesado + descartado | BD con 3 registros |
+|---|---|---|
+| ![Postman](docs/examen/Tenkenoz/despues-evento-1.png) | ![Logs](docs/examen/Tenkenoz/despues-idempotencia-log.png) | ![Audit log](docs/examen/Tenkenoz/despues-audit-3filas.png) |
+
+| Dos eventos distintos |
+|---|
+| ![Distintos](docs/examen/Tenkenoz/despues-dos-distintos.png) |

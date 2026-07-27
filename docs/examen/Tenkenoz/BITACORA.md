@@ -98,6 +98,19 @@ El plan inicial no consideró que los eventos de prueba tenían `type: "create"`
 | `despues-dos-distintos.png` | Dos eventos con IDs diferentes enviados |
 | `despues-audit-3filas.png` | BD con 3 registros: 1 del duplicado + 2 de eventos distintos |
 
+**Antes:**
+
+![Login](antes-login.png)
+![Evento duplicado](antes-evento-enviado.png)
+![Duplicate key error](antes-duplicate-key.png)
+
+**Después:**
+
+![Postman evento](despues-evento-1.png)
+![Logs idempotencia](despues-idempotencia-log.png)
+![Audit log 3 filas](despues-audit-3filas.png)
+![Dos eventos distintos](despues-dos-distintos.png)
+
 **Cómo reproducir mi cambio desde cero:**
 
 ```bash
