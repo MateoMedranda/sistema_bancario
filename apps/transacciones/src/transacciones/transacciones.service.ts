@@ -3,6 +3,7 @@ import { RpcException, type ClientGrpc, type ClientProxy } from '@nestjs/microse
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { lastValueFrom, Observable } from 'rxjs';
+import * as crypto from 'crypto';
 import { Transaccion } from './entities/transaccion.entity';
 import { CreateTransaccionDto } from './dto/create-transaccion.dto';
 
@@ -94,6 +95,7 @@ export class TransaccionesService implements OnModuleInit {
 
     this.logger.log('Transacciones -> Redis -> Usuarios (notificacion transaccion-creada)');
     this.notificacionClient.emit('transaccion-creada', {
+      eventId: crypto.randomUUID(),
       transaccionId: saved.id,
       type: dto.type,
       sourceAccountId: dto.sourceAccountId,
