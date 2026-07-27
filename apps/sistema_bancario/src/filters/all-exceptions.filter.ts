@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import * as Sentry from '@sentry/nestjs';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -27,6 +28,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
       ?? (exception instanceof HttpException
         ? exception.getResponse()
         : { message: 'Error interno del servidor' });
+
+    // Criterio C3 (Rúbrica): Enviar excepciones no controladas o errores 500 a Sentry con contexto
+    if (status >= 500) {
+      Sentry.captureException(exception, {
+        extra: {
+          url: request.url,
+          method: request.method,
+          body: request.body,
+          headers: request.headers,
+          rpcError,
+        },
+      });
+    }
 
     const errorResponse = {
       statusCode: status,

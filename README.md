@@ -223,8 +223,24 @@ En el directorio `tarea-3/` se adjunta la colección oficial de Postman (`Sistem
   <img src="docs/request_403.png" alt="Petición 403" width="750"/>
   </details>
 
-### 📊 Observabilidad Integral (Sentry)
-Se integró el SDK oficial de **Sentry** (`@sentry/node` y `@sentry/profiling-node`) de forma distribuida en el API Gateway y en cada microservicio (`svc-usuarios`, `svc-transacciones`, `svc-cuentas`). El sistema captura automáticamente trazas de pila (*Stack Traces*) completas, latencias de peticiones gRPC/TCP/HTTP y excepciones no controladas, vinculando el contexto del error al microservicio de origen mediante la configuración centralizada de la variable `SENTRY_DSN`.
+### 📊 Observabilidad (Sentry)
+
+Se integró la librería `@sentry/nestjs` en la API Gateway mediante la variable de entorno `SENTRY_DSN` para la auditoría y seguimiento centralizado de errores no controlados en producción.
+
+#### 1. Acceso autorizado exitoso (HTTP 201 Created)
+Petición `POST /api/transacciones` procesada con un código de referencia repetido (`refCode: "INSOMNIA-TEST-002"`)
+
+![Transacción autorizada](docs/avance3_jwt_201.png)
+
+#### 2. Excepción provocada en la API Gateway (HTTP 500 Internal Server Error)
+Se forzó un error de base de datos enviando una solicitud con un código de referencia repetido (`refCode: "INSOMNIA-TEST-002"`). El filtro global captura el `QueryFailedError` (violación de clave única) y retorna una respuesta formateada.
+
+![Error 500 en Insomnia](docs/avance3_sentry_500.png)
+
+#### 3. Registro detallado del evento en el Dashboard de Sentry
+Sentry recibe automáticamente la traza de la excepción, capturando la pila de errores (*stacktrace*), el endpoint afectado (`POST /api/transacciones`), los encabezados (con datos sensibles filtrados) y el cuerpo de la solicitud (`body`).
+
+![Evento en Sentry](docs/avance3_sentry_dashboard.png)
 
 ### 🔗 Integración Final del Sistema
 La operación integral atraviesa de forma cohesiva los diversos protocolos del ecosistema: una solicitud HTTP/REST externa entra por el **API Gateway**, se autentica mediante JWT/Bcrypt y se enruta de forma síncrona vía **gRPC (HTTP/2)** al microservicio de **Transacciones**, el cual valida saldos en tiempo real con el servicio de **Cuentas**, consolida los registros ACID en **PostgreSQL** y emite eventos de dominio asíncronos en **RabbitMQ** para auditoría y en **Redis Pub/Sub** para notificaciones.
