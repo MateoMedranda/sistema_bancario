@@ -35,6 +35,9 @@
 **FASE 3**
 *Para esta fase fue necesario definir un poco de lógica de negocio y validaciones, implementando el método GetAvailableBalance que fue definido en la interfaz en la fase anterior, en el mismo método implementado, coloqué algunas validaciones, como la estructura del id enviado dentro de la petición, validación sobre un id vacío enviado y validación de una búsqueda con el id enviado pero que no existe en los registros de la BDD, para esto use códigos 400 para bd request, y 404 para not found en [apps/cuentas/src/cuentas/cuentas.service.ts](../../apps/cuentas/src/cuentas/cuentas.service.ts), también hice una exposición del endpoint gRPC registrando la acción del nuevo controlador asociado al nuevo servicio en [apps/cuentas/src/cuentas/cuentas.controller.ts](../../apps/cuentas/src/cuentas/cuentas.controller.ts)*
 
+**FASE 3**
+*Para esta fase ya tomé en cuenta el consumo de gRPC y el manejo de errores en Transacciones, implementando getCuentaBalance(id: string) utilizando lastValueFrom sobre el servicio gRPC. Coloqué un log al principio del método y también utilicé un try/catch para manejo de excepciones, pero no solo eso, sino que por cada validación se desarrollo una respuesta personalizada con el código correspondiente. También registré el manejador TCP para escuchar peticiones del Gateway y agregué el puente TCP hacia el microservicio de Transacciones, por último expuse la ruta REST GET /api/cuentas/:id/balance, protegida por el decorador de roles @Roles(...) para control de acceso*
+
 
 
 

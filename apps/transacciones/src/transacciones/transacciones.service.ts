@@ -122,4 +122,67 @@ export class TransaccionesService implements OnModuleInit {
     }
     return transaccion;
   }
+
+  async getCuentaBalance(id: string) {
+    this.logger.log(`Transacciones -> gRPC -> Cuentas (obtener balance de cuenta: ${id})`);
+    
+    if (!id || id.trim() === '') {
+      throw new RpcException({
+        statusCode: 400,
+        message: 'El ID de la cuenta no puede estar vacío',
+        error: 'Bad Request',
+      });
+    }
+
+    try {
+      return await lastValueFrom(this.cuentasService.getAvailableBalance({ id }));
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      this.logger.error(`Error consultando saldo de la cuenta ${id} vía gRPC: ${errorMsg}`);
+      
+      if (error && typeof error === 'object') {
+        const details = (error as any).details ?? (error as any).message;
+        const code = (error as any).code;
+        const statusCode = (error as any).statusCode ?? (error as any).status;
+
+        if (code === 5 || code === '5' || statusCode === 404 || (error as any).error === 'Not Found') {
+          throw new RpcException({
+            statusCode: 404,
+            message: details || `Cuenta con ID ${id} no encontrada`,
+            error: 'Not Found',
+          });
+        }
+
+        if (code === 3 || code === '3' || statusCode === 400 || (error as any).error === 'Bad Request') {
+          throw new RpcException({
+            statusCode: 400,
+            message: details || 'El ID de la cuenta tiene un formato inválido',
+            error: 'Bad Request',
+          });
+        }
+
+        if (code === 14 || code === '14' || String(errorMsg).includes('UNAVAILABLE') || String(errorMsg).includes('Connect Failed')) {
+          throw new RpcException({
+            statusCode: 503,
+            message: 'El servicio de cuentas no se encuentra disponible temporalmente',
+            error: 'Service Unavailable',
+          });
+        }
+      }
+
+      if (String(errorMsg).includes('UNAVAILABLE') || String(errorMsg).includes('Connect Failed')) {
+        throw new RpcException({
+          statusCode: 503,
+          message: 'El servicio de cuentas no se encuentra disponible temporalmente',
+          error: 'Service Unavailable',
+        });
+      }
+
+      throw new RpcException({
+        statusCode: 500,
+        message: `Error al obtener el saldo de la cuenta: ${errorMsg}`,
+        error: 'Internal Server Error',
+      });
+    }
+  }
 }
