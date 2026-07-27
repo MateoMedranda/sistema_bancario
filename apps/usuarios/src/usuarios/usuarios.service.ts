@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { Usuario } from './entities/usuario.entity';
+import { AuditLog } from './entities/audit-log.entity';
 
 @Injectable()
 export class UsuariosService {
@@ -11,6 +12,8 @@ export class UsuariosService {
   constructor(
     @InjectRepository(Usuario)
     private readonly repo: Repository<Usuario>,
+    @InjectRepository(AuditLog)
+    private readonly auditLogRepo: Repository<AuditLog>,
   ) {}
 
   /**
@@ -57,6 +60,30 @@ export class UsuariosService {
 
         await this.repo.save(usuario);
         this.logger.log(`Usuario ${usuario.name} creado via evento asincrono`);
+      } else if (data.eventId) {
+        const existente = await this.auditLogRepo.findOne({
+          where: { eventId: data.eventId },
+        });
+
+        if (existente) {
+          this.logger.warn(
+            `Evento duplicado detectado (eventId: ${data.eventId}), descartado`,
+          );
+          return;
+        }
+
+        const log = this.auditLogRepo.create({
+          eventId: data.eventId,
+          transaccionId: data.transaccionId,
+          type: data.type,
+          amount: data.amount,
+          status: data.status,
+        });
+
+        await this.auditLogRepo.save(log);
+        this.logger.log(
+          `Evento ${data.eventId} procesado e idempotentemente persistido en AuditLog`,
+        );
       } else {
         this.logger.log('Evento recibido sin accion de persistencia especifica');
       }
