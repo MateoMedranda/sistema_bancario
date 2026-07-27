@@ -359,3 +359,31 @@ NestJS usa: Controllers, Services, Modules, Guards, Interceptors, Pipes, Filters
 
 ## 🏷️ Tags de entrega
 - `v1-avance1` — 16-07-2026 · `v2-avance2` — 21-07-2026 · `v3-final` — 26-07-2026
+
+### Examen final — Erick Obando
+
+**Actividad C: Consumidor asíncrono idempotente**
+
+El microservicio Usuarios ahora consume eventos `transaccion-creada` de forma idempotente. Si el mismo evento llega dos veces (reentrega de Redis), el consumidor detecta el `eventId` duplicado y lo descarta sin crear un registro repetido. Si el evento es nuevo, se persiste en la tabla `AuditLog`.
+
+- **Rama:** `exam/Tenkenoz`
+- **Tag:** `examen-Tenkenoz`
+- **Bitácora:** [docs/examen/Tenkenoz/BITACORA.md](docs/examen/Tenkenoz/BITACORA.md)
+
+#### Evidencia
+
+**Antes:**
+
+| Login | Evento duplicado | Error en BD |
+|---|---|---|
+| ![Login](docs/examen/Tenkenoz/antes-login.png) | ![Evento duplicado](docs/examen/Tenkenoz/antes-evento-enviado.png) | ![Duplicate key](docs/examen/Tenkenoz/antes-duplicate-key.png) |
+
+**Después:**
+
+| Evento con idempotencia | Logs: procesado + descartado | BD con 3 registros |
+|---|---|---|
+| ![Postman](docs/examen/Tenkenoz/despues-evento-1.png) | ![Logs](docs/examen/Tenkenoz/despues-idempotencia-log.png) | ![Audit log](docs/examen/Tenkenoz/despues-audit-3filas.png) |
+
+| Dos eventos distintos |
+|---|
+| ![Distintos](docs/examen/Tenkenoz/despues-dos-distintos.png) |
